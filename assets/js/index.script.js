@@ -10,8 +10,10 @@ const possiblePlayer = {
   O: "O",
 };
 
+/** @type {string[]} */
 let gameBoard = ["", "", "", "", "", "", "", "", ""]; // the current game board
 
+/** @type {number[][]} */
 const winConditions = [
   [0, 1, 2], // Top row
   [3, 4, 5], // Middle row
@@ -106,11 +108,13 @@ function checkForWinOrDraw() {
   }
 }
 
+/** Announce winner of the game */
 function announceWinner(player) {
   const messageElement = document.getElementById("gameMessage");
   messageElement.innerText = `Player ${player} Wins!`;
 }
 
+/** Announce the game was a draw */
 function announceDraw() {
   const messageElement = document.getElementById("gameMessage");
   messageElement.innerText = "Game Draw!";
