@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Noughts & Crosses Game</title>
+    <title>Noughts & Crosses (Tic-Tac-Toe) Game</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -13,7 +13,27 @@
     <link href="../assets/css/index.styling.css" rel="stylesheet" />
   </head>
   <body>
-    <canvas id="canvas" width="160" height="160"></canvas>
+    <div id="tic-tac-toe-board">
+      <div class="row">
+        <div class="cell" id="cell-1"></div>
+        <div class="cell" id="cell-2"></div>
+        <div class="cell" id="cell-3"></div>
+      </div>
+      <div class="row">
+        <div class="cell" id="cell-4"></div>
+        <div class="cell" id="cell-5"></div>
+        <div class="cell" id="cell-6"></div>
+      </div>
+      <div class="row">
+        <div class="cell" id="cell-7"></div>
+        <div class="cell" id="cell-8"></div>
+        <div class="cell" id="cell-9"></div>
+      </div>
+    </div>
+
+    <button id="resetButton">Reset Game</button>
+    <div id="gameMessage" class="game-message"></div>
+
     <script src="../assets/js/index.script.js"></script>
   </body>
 </html>
