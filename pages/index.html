@@ -6,15 +6,22 @@
     <title>Noughts & Crosses (Tic-Tac-Toe) Game</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Quicksand:wght@300..700&display=swap"
       rel="stylesheet"
     />
+
     <link href="../assets/css/index.styling.css" rel="stylesheet" />
   </head>
   <body>
+    <div>
+      <h1>Game Mode</h1>
+      <h1>Round Mode</h1>
+    </div>
+    <div id="scoreTracker"></div>
     <div id="tic-tac-toe-board">
-      <div class="row">
+      <!-- <div class="row">
         <div class="cell" id="cell-1"></div>
         <div class="cell" id="cell-2"></div>
         <div class="cell" id="cell-3"></div>
@@ -28,10 +35,19 @@
         <div class="cell" id="cell-7"></div>
         <div class="cell" id="cell-8"></div>
         <div class="cell" id="cell-9"></div>
-      </div>
+      </div> -->
     </div>
 
-    <button id="resetButton">Reset Game</button>
+    <!-- <div class="modal">
+      <section class="game-over-modal">
+        <h1 class="gradient-text">GAME OVER</h1>
+        <p>&ldquo;Player Name&rdquo; won</p>
+        <small>Wanna give it another go?</small>
+        <button class="btn">Play Again</button>
+      </section>
+    </div> -->
+
+    <button id="resetButton" class="btn">Reset Game</button>
     <div id="gameMessage" class="game-message"></div>
 
     <script src="../assets/js/index.script.js"></script>

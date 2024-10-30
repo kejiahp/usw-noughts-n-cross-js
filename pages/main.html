@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tic-Tac-Toe</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Quicksand:wght@300..700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../assets/css/main.styling.css" />
+  </head>
+
+  <body>
+    <section>
+      <form id="game-settings-form" class="game-settings-form">
+        <label>
+          <p>Select Round Type</p>
+          <select name="round-type" id="round-type">
+            <option value="best-of-three">Best of three (3)</option>
+            <option value="best-of-nine">Best of nine (9)</option>
+            <option value="free-for-all">Free for all</option>
+          </select>
+        </label>
+
+        <div class="start-btn-wrapper">
+          <button type="submit" class="btn">Start</button>
+        </div>
+      </form>
+    </section>
+
+    <script type="text/javascript" src="../assets/js/main.script.js"></script>
+  </body>
+</html>
