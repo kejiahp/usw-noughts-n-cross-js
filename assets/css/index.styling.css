@@ -23,7 +23,7 @@ body {
   align-items: center;
   min-height: 100vh;
   margin: 0;
-  background: linear-gradient(to right, #74ebd5, #acb6e5);
+  /* background: linear-gradient(to right, #74ebd5, #acb6e5); */
   color: #333;
 }
 
@@ -178,6 +178,9 @@ body {
 }
 .game-over-modal small {
   margin-top: 10px;
+}
+.hidden {
+  display: none;
 }
 
 @media (max-width: 600px) {

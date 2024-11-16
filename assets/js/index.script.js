@@ -267,6 +267,11 @@ function colorWinCell(array) {
 function checkForWinOrDraw() {
   let roundWon = false;
 
+  // if (roundsLeft <= 0 && roundType !== "free-for-all") {
+  //   console.log("Rounds over");
+  //   return;
+  // }
+
   for (let i = 0; i < winConditions.length; i++) {
     const arrToCompare = [];
     const winCombinationCellIndex = [];
@@ -309,15 +314,60 @@ function checkForWinOrDraw() {
  * Keeps track of the number of rounds played when `roundType` is of values `best-of-nine` and `best-of-three`
  */
 function decrementRoundsLeft() {
-  if (
-    (roundType === "best-of-nine" || roundType === "best-of-three") &&
-    typeof roundsLeft === "number" &&
-    roundsLeft > 0
-  ) {
+  if (isOnGoingRound()) {
     roundsLeft -= 1;
+
+    if (roundsLeft === 0) {
+      /** @type {HTMLDivElement} */
+      const gameOverModal = document.querySelector(".game-over-modal");
+
+      gameOverModal.parentElement.classList.remove("hidden");
+      const gameOverModalWinnerLabel = document.querySelector(".winner_name");
+
+      const highestScorePlayer = getWinner();
+      if (highestScorePlayer === "same_score") {
+        gameOverModalWinnerLabel.textContent = `Oh...Its a draw😮`;
+      } else {
+        gameOverModalWinnerLabel.textContent = `"${highestScorePlayer.name}" won`;
+      }
+
+      console.log("GAME END");
+    }
   }
-  console.log(roundType);
-  console.log(roundsLeft);
+}
+
+/**
+ * Function that gets the player with the highest score
+ *
+ * @returns {PlayerData | "same_score"}
+ */
+function getWinner() {
+  let highScore = 0;
+  let playerName = "";
+
+  if (isSameScoreForAllPlayers()) {
+    return "same_score";
+  }
+
+  for (const item of playerData) {
+    if (item.score > highScore) {
+      highScore = item.score;
+      playerName = item.name;
+    }
+  }
+
+  return playerData.find((item) => item.name === playerName) ?? playerData[0];
+}
+
+/** Function that checks if all players have the same score */
+function isSameScoreForAllPlayers() {
+  let score = playerData[0].score;
+  for (const item of playerData) {
+    if (score !== item.score) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**
@@ -335,6 +385,26 @@ function incrementPlayerScoreCount(playerArray) {
   });
 }
 
+/**
+ * Function to reset all player score to zero
+ *
+ * @return {void}
+ * */
+function resetPlayerScore() {
+  playerData.forEach((player) => {
+    player.score = 0;
+  });
+}
+
+function resetRoundsLeft() {
+  roundsLeft =
+    roundType === "best-of-nine"
+      ? 9
+      : roundType === "best-of-three"
+      ? 3
+      : undefined;
+}
+
 /** Announce winner of the game */
 function announceWinner(player) {
   const messageElement = document.getElementById("gameMessage");
@@ -347,14 +417,51 @@ function announceDraw() {
   messageElement.innerText = "Game Draw!";
 }
 
-/** Function to clear game state and player data */
-function resetGame() {
+/**
+ * Function to clear game state and player data
+ *
+ * @param {boolean} closeGameOverModal
+ *  */
+function resetGame(closeGameOverModal) {
   const arr = [];
   for (let i = 0; i < gameBoardState.length; i++) {
     arr.push("");
   }
   gameBoardState = arr; // Clear the game board
   gameActive = true; // Set the game as active
+  currentPlayer = playerData[0].avatar; // Reset to player X
+  if (closeGameOverModal) {
+    /** @type {HTMLDivElement} */
+    const gameOverModal = document.querySelector(".game-over-modal");
+    gameOverModal.parentElement.classList.add("hidden");
+  }
+
+  resetPlayerScore();
+  renderScoreTracker();
+  resetRoundsLeft();
+
+  // Clear all cells on the UI
+  for (let i = 0; i < cells.length; i++) {
+    cells[i].innerText = "";
+    if (cells[i].classList.contains("bg-green")) {
+      cells[i].classList.remove("bg-green");
+    }
+  }
+  document.getElementById("gameMessage").innerText = "";
+}
+
+/** Function that clears the board for the next round */
+function nextGameRound() {
+  const arr = [];
+  for (let i = 0; i < gameBoardState.length; i++) {
+    arr.push("");
+  }
+  // Clear the game board
+  gameBoardState = arr;
+  // Set the game as active
+  if (isOnGoingRound()) {
+    gameActive = true;
+  }
   currentPlayer = playerData[0].avatar; // Reset to player X
   // Clear all cells on the UI
   for (let i = 0; i < cells.length; i++) {
@@ -367,14 +474,26 @@ function resetGame() {
 }
 
 const resetButton = document.getElementById("resetButton");
-// if (
-//   (roundType === "best-of-nine" || roundType === "best-of-three") &&
-//   typeof roundsLeft === "number" &&
-//   roundsLeft > 0
-// ) {
-//   resetButton.textContent = "Next round";
-// } else {
-//   resetButton.textContent = "Play Again";
-// }
+/** Game over modal play again button */
+const playAgain = document.getElementById("play_again");
+playAgain.addEventListener("click", () => resetGame(true));
 
-resetButton.addEventListener("click", resetGame, false);
+/**
+ * Function that checks for on going rounds
+ * @returns boolean
+ */
+function isOnGoingRound() {
+  return (
+    roundType !== "free-for-all" &&
+    typeof roundsLeft === "number" &&
+    roundsLeft > 0
+  );
+}
+
+if (isOnGoingRound()) {
+  resetButton.textContent = "Next round";
+  resetButton.addEventListener("click", nextGameRound, false);
+} else {
+  resetButton.textContent = "Reset Game";
+  resetButton.addEventListener("click", resetGame, false);
+}
