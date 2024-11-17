@@ -3,8 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tic-Tac-Toe</title>
-
+    <title>Noughts & Crosses (Tic-Tac-Toe) Game</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
@@ -13,86 +12,47 @@
       rel="stylesheet"
     />
 
-    <link rel="stylesheet" href="../assets/css/main.styling.css" />
+    <link href="../assets/css/index.styling.css" rel="stylesheet" />
   </head>
-
   <body>
-    <section>
-      <form id="game-settings-form" class="game-settings-form">
-        <button class="reset_form" type="button" onclick="location.reload()">
-          Reset form
-        </button>
-        <label>
-          <p>Select Player Count</p>
-          <select name="player_count" id="player_count">
-            <option value="2">2 players</option>
-            <option value="3">3 players</option>
-            <option value="4">4 players</option>
-            <option value="5">5 players</option>
-            <option value="6">6 players</option>
-          </select>
-        </label>
+    <div>
+      <h1>Game Mode</h1>
+      <h1>Round Mode</h1>
+    </div>
+    <div id="scoreTracker"></div>
+    <div id="tic-tac-toe-board">
+      <!-- <div class="row">
+        <div class="cell" id="cell-1"></div>
+        <div class="cell" id="cell-2"></div>
+        <div class="cell" id="cell-3"></div>
+      </div>
+      <div class="row">
+        <div class="cell" id="cell-4"></div>
+        <div class="cell" id="cell-5"></div>
+        <div class="cell" id="cell-6"></div>
+      </div>
+      <div class="row">
+        <div class="cell" id="cell-7"></div>
+        <div class="cell" id="cell-8"></div>
+        <div class="cell" id="cell-9"></div>
+      </div> -->
+    </div>
 
-        <div class="avatar_exhibition"></div>
+    <div class="modal hidden">
+      <section class="game-over-modal">
+        <h1 class="gradient-text">GAME OVER</h1>
 
-        <p class="character_select_reminder gradient-text pulse"></p>
+        <p class="winner_name"></p>
 
-        <div class="player_wrapper"></div>
+        <small>Wanna give it another go?</small>
+        <button class="btn" id="play_again">Play Again</button>
+      </section>
+    </div>
 
-        <div class="next_avatar_selection">
-          <button
-            id="next_avatar_selection_btn"
-            class="btn2"
-            style="padding: 5px; font-size: 12px"
-          >
-            Next player
-          </button>
-        </div>
+    <button id="resetButton" class="btn">Reset Game</button>
+    <!-- <button id="resetButton" class="btn">Reset Game</button> -->
+    <div id="gameMessage" class="game-message"></div>
 
-        <label>
-          <p>Select Board Size</p>
-          <select name="board_size" id="board_size">
-            <option value="6#6">6 X 6 board</option>
-            <option value="7#7">7 X 7 board</option>
-            <option value="8#8">8 x 8 board</option>
-            <option value="11#11">11 X 11 board</option>
-            <option value="12#12">12 X 12 board</option>
-            <option value="custom">Customize your board</option>
-          </select>
-        </label>
-
-        <div class="board_cust hidden">
-          <p style="font-weight: 500">Board customization</p>
-          <section>
-            <label>
-              <p>No. of rows</p>
-              <input min="1" max="12" type="number" id="rows_no" />
-              <p style="font-weight: 800" class="rows_no_error no_error"></p>
-            </label>
-
-            <label>
-              <p>No. of columns</p>
-              <input min="1" max="12" type="number" id="columns_no" />
-              <p style="font-weight: 800" class="columns_no_error no_error"></p>
-            </label>
-          </section>
-        </div>
-
-        <label>
-          <p>Select Round Type</p>
-          <select name="round-type" id="round-type">
-            <option value="best-of-three">Best of three (3)</option>
-            <option value="best-of-nine">Best of nine (9)</option>
-            <option value="free-for-all">Free for all</option>
-          </select>
-        </label>
-
-        <div class="start-btn-wrapper">
-          <button type="submit" class="btn">Start</button>
-        </div>
-      </form>
-    </section>
-
-    <script type="text/javascript" src="../assets/js/main.script.js"></script>
+    <script src="../assets/js/index.script.js"></script>
   </body>
 </html>

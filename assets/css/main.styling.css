@@ -29,6 +29,20 @@ input {
   position: relative;
 }
 
+.main_heading {
+  font-family: var(--press-start-2p);
+  margin: 40px 0px 10px 0px;
+  text-align: center;
+  font-size: 28px;
+}
+
+.main_deecription {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 400;
+  margin-bottom: 20px;
+}
+
 .reset_form {
   position: absolute;
   top: 10px;

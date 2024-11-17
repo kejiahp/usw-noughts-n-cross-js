@@ -6,6 +6,15 @@
  */
 
 /**
+ * @typedef {Object} PlayerCharacterDetails
+ * @property {string} avatar
+ * @property {string} name
+ * @property {number} score
+ * @property {string} color
+ * @property {boolean} isAI
+ */
+
+/**
  * @typedef {Object.<string, string>} PlayerScore
  */
 
@@ -15,14 +24,37 @@
  * @property {number} ROWS
  */
 
-/** @type {PlayerData[]} */
-const playerData = [
-  { avatar: "X", name: "Ex", score: 0 },
-  { avatar: "O", name: "Oh", score: 0 },
-];
+const gameSettingsStr = window.localStorage.getItem("gameSettings");
+
+/** Prevents users for attempting to play the game if the game settings were not found */
+if (!gameSettingsStr) {
+  alert("No Game Settings");
+  location.href = "./index.html";
+}
+
+/** @type {{playerCount:Number, playerDetails:PlayerCharacterDetails[], boardSize:String, roundType:"best-of-three" | "best-of-nine" | "free-for-all"}} */
+const gameSettings = JSON.parse(gameSettingsStr);
+
+console.log("gameSettings", gameSettings);
+
+// /** @type {PlayerData[]} */
+// const playerData = [
+//   { avatar: "X", name: "Ex", score: 0 },
+//   { avatar: "O", name: "Oh", score: 0 },
+// ];
+
+const playerData = gameSettings.playerDetails.map((item) => {
+  return {
+    avatar: item.avatar,
+    name: item.name,
+    score: 0,
+    color: item,
+    isAI: item.isAI,
+  };
+});
 
 /** @type {"best-of-three" | "best-of-nine" | "free-for-all"} */
-const roundType = window.localStorage.getItem("roundType") ?? "best-of-three";
+const roundType = gameSettings?.roundType ?? "best-of-three";
 
 /** @type {number | undefined} */
 let roundsLeft =
@@ -32,6 +64,9 @@ let roundsLeft =
     ? 3
     : undefined;
 
+/**Get the number of rows & columns from the gameSettings */
+const [ROW_NO, COLUMN_NO] = gameSettings.boardSize.split("#");
+
 /**
  * Object depicting the number of rows and columns of the board.
  *
@@ -39,8 +74,8 @@ let roundsLeft =
  *
  * @type {BoardStructure} */
 const boardStructure = {
-  COLUMNS: 3,
-  ROWS: 3,
+  COLUMNS: COLUMN_NO,
+  ROWS: ROW_NO,
 };
 
 /**
@@ -228,7 +263,16 @@ function cellClicked(clickedCellEvent) {
  */
 function updateUI() {
   for (let cellIndx = 0; cellIndx < cells.length; cellIndx++) {
-    cells[cellIndx].innerText = gameBoardState[cellIndx];
+    const player = playerData.find(
+      (item) => item.avatar === gameBoardState[cellIndx]
+    );
+    if (player) {
+      cells[cellIndx].innerHTML = `
+    <img style="width:100%;height:100%;object-fit:contain;" src="${player.avatar}" alt="${player.name}"/>
+    `;
+    }
+
+    // cells[cellIndx].innerText = gameBoardState[cellIndx];
   }
 }
 
@@ -266,11 +310,6 @@ function colorWinCell(array) {
 /** Checks all possible win conditions, if a winner is found the game ends and a winner is announced */
 function checkForWinOrDraw() {
   let roundWon = false;
-
-  // if (roundsLeft <= 0 && roundType !== "free-for-all") {
-  //   console.log("Rounds over");
-  //   return;
-  // }
 
   for (let i = 0; i < winConditions.length; i++) {
     const arrToCompare = [];

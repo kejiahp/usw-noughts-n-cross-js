@@ -54,12 +54,12 @@ const startBtn = document.getElementById("start_btn");
  * @type {CharacterAvatars[]}
  */
 let characterAvatar = [
-  { alt: "frieza", src: "../assets/avatars/frieza.png", playerColor: "" },
   { alt: "goku", src: "../assets/avatars/goku.png", playerColor: "" },
-  { alt: "madara", src: "../assets/avatars/madara.png", playerColor: "" },
-  { alt: "naruto", src: "../assets/avatars/naruto.png", playerColor: "" },
-  { alt: "sasuke", src: "../assets/avatars/sasuke.png", playerColor: "" },
   { alt: "vegeta", src: "../assets/avatars/vegeta.png", playerColor: "" },
+  { alt: "frieza", src: "../assets/avatars/frieza.png", playerColor: "" },
+  { alt: "naruto", src: "../assets/avatars/naruto.png", playerColor: "" },
+  { alt: "madara", src: "../assets/avatars/madara.png", playerColor: "" },
+  { alt: "sasuke", src: "../assets/avatars/sasuke.png", playerColor: "" },
 ];
 
 /** Array of colors for players */
@@ -360,6 +360,33 @@ function allowPlayerSelection() {
   renderCharacterSelectionReminder();
 }
 
+/** Check player details for player entries with the same username
+ *
+ * @param {PlayerCharacterDetails[]} plyDet
+ * @return {boolean}
+ */
+function checkForSameUsername(plyDet) {
+  const nameCounts = {};
+
+  for (const obj of plyDet) {
+    const name = obj.name;
+
+    // Skip empty strings
+    if (!name || name.trim() === "") {
+      continue;
+    }
+
+    const lowerCaseName = name.toLowerCase();
+
+    if (nameCounts[lowerCaseName]) {
+      return true; // Found a duplicate
+    }
+    nameCounts[lowerCaseName] = 1;
+  }
+
+  return false; // No duplicates found
+}
+
 /** Changes the avater selection turn
  * @param {Event} e
  */
@@ -393,6 +420,14 @@ function nextPlayerSelectionTurnHandler(e) {
         avatarSelectionTurn + 1
       }'s username must be a minimum of 3 characters`
     );
+    return;
+  }
+
+  /** Destructure (unpack) return object */
+  const isSameNameFound = checkForSameUsername(playerCharacterDetails);
+
+  if (isSameNameFound) {
+    alert(`Player ${avatarSelectionTurn + 1}'s username must be unique`);
     return;
   }
 
@@ -523,6 +558,14 @@ function validateUserDetails(plyCnt, plyDet) {
     return { isValid: false, details: "Invalid player count" };
   }
 
+  /** Destructure (unpack) return object */
+  const isSameNameFound = checkForSameUsername(plyDet);
+
+  if (isSameNameFound) {
+    alert(`Player usernames must be unique`);
+    return;
+  }
+
   for (let i = 0; i < plyDet.length; i++) {
     const ply = plyDet[i];
     if (ply.avatar === "") {
@@ -585,8 +628,8 @@ function onSubmitGameSettingsHandler(event) {
     roundType: roundTypeInput.value,
   };
 
-  window.localStorage.setItem("gameSettings", gameSettings);
-  location.href = "./index.html";
+  window.localStorage.setItem("gameSettings", JSON.stringify(gameSettings));
+  location.href = "./main.html";
 }
 
 gameSettingForm.addEventListener("submit", onSubmitGameSettingsHandler);
