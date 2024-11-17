@@ -26,6 +26,28 @@ input {
   padding: 10px;
   border-radius: 10px;
   border: 1px solid black;
+  position: relative;
+}
+
+.reset_form {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 5px 10px;
+  outline: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+  font-weight: 800;
+  color: var(--white);
+  background-color: #e31948;
+  transition-property: opacity;
+  transition-timing-function: ease-in-out;
+  transition-duration: 300ms;
+}
+
+.reset_form:hover {
+  opacity: 0.7;
 }
 
 .game-settings-form label {
@@ -40,6 +62,14 @@ input {
 
 .game-settings-form input {
   padding: 2px 5px;
+}
+
+.game-settings-form input:disabled {
+  cursor: not-allowed;
+}
+
+.game-settings-form button:disabled {
+  cursor: not-allowed;
 }
 
 .game-settings-form select {
@@ -85,10 +115,12 @@ input {
   transition: all;
   transition-timing-function: ease-in-out;
   transition-duration: 200ms;
+  outline: none;
+  border: 2px solid transparent;
 }
 
 .avatar_exhibition button:hover {
-  background-color: #fca5a5;
+  background-color: #d3d3d3;
 }
 
 .avatar_exhibition img {
@@ -97,10 +129,13 @@ input {
   object-fit: contain;
 }
 
-.player-wrapper {
+.player_wrapper {
   display: flex;
   align-items: center;
+  /* justify-content: space-around; */
   flex-wrap: wrap;
+  gap: 10px;
+  margin: 20px 10px;
 }
 
 .player_detail {
@@ -110,6 +145,7 @@ input {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  gap: 5px;
 }
 
 .player_detail img {
@@ -118,6 +154,12 @@ input {
   border-radius: 5000px;
   background-color: #ddd;
   object-fit: contain;
+  border: 2px solid transparent;
+}
+
+.next_avatar_selection {
+  display: flex;
+  margin: 20px 0px;
 }
 
 .start-btn-wrapper {
@@ -172,4 +214,20 @@ input {
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.09);
+  }
+  100% {
+    transform: scale(1);
+  }
 }

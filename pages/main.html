@@ -19,6 +19,9 @@
   <body>
     <section>
       <form id="game-settings-form" class="game-settings-form">
+        <button class="reset_form" type="button" onclick="location.reload()">
+          Reset form
+        </button>
         <label>
           <p>Select Player Count</p>
           <select name="player_count" id="player_count">
@@ -30,50 +33,21 @@
           </select>
         </label>
 
-        <div class="avatar_exhibition">
-          <button>
-            <img src="../assets/avatars/frieza.png" alt="" />
-          </button>
+        <div class="avatar_exhibition"></div>
 
-          <button>
-            <img src="../assets/avatars/goku.png" alt="" />
-          </button>
+        <p class="character_select_reminder gradient-text pulse"></p>
 
-          <button>
-            <img src="../assets/avatars/vegeta.png" alt="" />
-          </button>
+        <div class="player_wrapper"></div>
 
-          <button>
-            <img src="../assets/avatars/sasuke.png" alt="" />
-          </button>
-
-          <button>
-            <img src="../assets/avatars/naruto.png" alt="" />
-          </button>
-
-          <button>
-            <img src="../assets/avatars/madara.png" alt="" />
+        <div class="next_avatar_selection">
+          <button
+            id="next_avatar_selection_btn"
+            class="btn2"
+            style="padding: 5px; font-size: 12px"
+          >
+            Next player
           </button>
         </div>
-
-        <p class="character_select_reminder gradient-text">
-          "Player 1" choose your avatar and provide a username
-        </p>
-
-        <div class="player-wrapper">
-          <div class="player_detail">
-            <h5>Player 1</h5>
-            <img src="" alt="" />
-            <label>
-              <input type="text" placeholder="Player 1 Username" />
-            </label>
-            <button>Make AI</button>
-          </div>
-        </div>
-
-        <!-- <label>
-          <p>Select Pick AI</p>
-        </label> -->
 
         <label>
           <p>Select Board Size</p>
