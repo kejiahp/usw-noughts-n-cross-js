@@ -44,6 +44,9 @@ const characterSelectReminder = document.querySelector(
   ".character_select_reminder"
 );
 
+/** @type {HTMLButtonElement} */
+const startBtn = document.getElementById("start_btn");
+
 /** Player avatars
  *
  * `playerColor` is used to uniquely match and avatar to a player
@@ -163,6 +166,7 @@ function renderAvatarExhibition(characterAv) {
     const iNum = Number(i);
 
     const avatarButton = document.createElement("button");
+    avatarButton.type = "button";
     avatarButton.style.borderColor = charAvt.playerColor;
     avatarButton.id = `${AVATAR_BTN}_${iNum + 1}`;
     avatarButton.innerHTML = `
@@ -309,6 +313,9 @@ function onChangePlayerCount(e) {
   }
 
   avatarSelectionTurn = 0;
+  nextAvatarSelectionBtn.textContent = "Next Player";
+  /** Disable start button */
+  startBtn.disabled = true;
   /**INITIAL AVATAR EXHIBITION RENDER */
   renderAvatarExhibition(characterAvatar);
   /**INITIAL PLAYER INFO RENDER */
@@ -353,8 +360,12 @@ function allowPlayerSelection() {
   renderCharacterSelectionReminder();
 }
 
-/** Changes the avater selection turn */
-function nextPlayerSelectionTurnHandler() {
+/** Changes the avater selection turn
+ * @param {Event} e
+ */
+function nextPlayerSelectionTurnHandler(e) {
+  e.preventDefault();
+
   if (avatarSelectionTurn === undefined) {
     return;
   }
@@ -393,6 +404,11 @@ function nextPlayerSelectionTurnHandler() {
 
   /** if avatar selection is on the last element player assign undefined to `avatarSelectionTurn` */
   if (avatarSelectionTurn === playerCharacterDetails.length - 1) {
+    if (nextAvatarSelectionBtn.textContent === "Save") {
+      /** Enable start button */
+      startBtn.disabled = false;
+    }
+
     avatarSelectionTurn = undefined;
     // hide the next player button when their are no more selection turns
     nextAvatarSelectionBtn.classList.add("hidden");
@@ -474,34 +490,69 @@ columnsNo.addEventListener("input", onInputCustomSizeEntry);
 boardSize.addEventListener("change", onChangeBoardSizeHandler);
 
 /**
+ * Returns a boolean when the custom row size or column size validation fails
+ *
+ * @param {"rows_no" | "columns_no"} id
+ * @param {number} value
+ *
+ * @returns {boolean}
+ */
+const validateCustomBoardFields = (id, value) => {
+  const errorTag = getInputErrorParagraph(id);
+  if (value > 12) {
+    errorTag.textContent = "Maximum of 12 rows";
+    return false;
+  } else if (value < 1) {
+    errorTag.textContent = "Minimum of 1 rows";
+    return false;
+  } else {
+    errorTag.textContent = "";
+    return true;
+  }
+};
+
+/**
+ *
+ * @param {number} plyCnt
+ * @param {PlayerCharacterDetails[]} plyDet
+ *
+ * @returns {{isValid:Boolean, details:String | undefined}}
+ */
+function validateUserDetails(plyCnt, plyDet) {
+  if (plyDet.length !== plyCnt) {
+    return { isValid: false, details: "Invalid player count" };
+  }
+
+  for (let i = 0; i < plyDet.length; i++) {
+    const ply = plyDet[i];
+    if (ply.avatar === "") {
+      return {
+        isValid: false,
+        details: `Player ${i + 1}'s avatar is required`,
+      };
+    } else if (ply.name === "") {
+      return {
+        isValid: false,
+        details: `Player ${i + 1}'s username is required`,
+      };
+    } else if (ply.name.length < 3) {
+      return {
+        isValid: false,
+        details: `Player ${i + 1}'s username must be a minimum of 3 characters`,
+      };
+    }
+  }
+
+  return { isValid: true, details: undefined };
+}
+
+/**
  * Handles submission of game settings
  *
  * @param {SubmitEvent} event
  */
 function onSubmitGameSettingsHandler(event) {
   event.preventDefault();
-
-  /**
-   * Returns a boolean when the custom row size or column size validation fails
-   *
-   * @param {"rows_no" | "columns_no"} id
-   * @param {number} value
-   *
-   * @returns {boolean}
-   */
-  const validateCustomBoardFields = (id, value) => {
-    const errorTag = getInputErrorParagraph(id);
-    if (value > 12) {
-      errorTag.textContent = "Maximum of 12 rows";
-      return false;
-    } else if (value < 1) {
-      errorTag.textContent = "Minimum of 1 rows";
-      return false;
-    } else {
-      errorTag.textContent = "";
-      return true;
-    }
-  };
 
   if (boardSize.value === "custom") {
     const rowValue = Number(rowsNo.value);
@@ -513,14 +564,29 @@ function onSubmitGameSettingsHandler(event) {
     }
   }
 
-  console.log("playerCount", playerCount.value);
-  console.log("boardSize", boardSize.value);
-  console.log("rowsNo", rowsNo);
-  console.log("columnsNo", columnsNo);
-  console.log("roundType", roundTypeInput.value);
-  console.log("playerCharacterDetails", playerCharacterDetails);
+  /** Destructuring (unpacking) the validation function return object */
+  const { isValid, details } = validateUserDetails(
+    Number(playerCount.value),
+    playerCharacterDetails
+  );
 
-  // window.localStorage.setItem("roundType", roundTypeInput.value);
+  if (!isValid) {
+    alert("Validation Failed:" + "\n\n" + details);
+    return;
+  }
+
+  const gameSettings = {
+    playerCount: playerCharacterDetails.length,
+    playerDetails: playerCharacterDetails,
+    boardSize:
+      boardSize.value !== "custom"
+        ? boardSize.value
+        : `${rowsNo.value}#${columnsNo.value}`,
+    roundType: roundTypeInput.value,
+  };
+
+  window.localStorage.setItem("gameSettings", gameSettings);
+  location.href = "./index.html";
 }
 
 gameSettingForm.addEventListener("submit", onSubmitGameSettingsHandler);
