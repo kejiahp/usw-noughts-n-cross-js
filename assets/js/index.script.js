@@ -1,11 +1,4 @@
 /**
- * @typedef {Object} PlayerData
- * @property {string} avatar
- * @property {string} name
- * @property {number} score
- */
-
-/**
  * @typedef {Object} PlayerCharacterDetails
  * @property {string} avatar
  * @property {string} name
@@ -24,34 +17,33 @@
  * @property {number} ROWS
  */
 
-const gameSettingsStr = window.localStorage.getItem("gameSettings");
+const GAME_SETTING_KEY = "gameSettings";
+
+const gameSettingsStr = window.localStorage.getItem(GAME_SETTING_KEY);
 
 /** Prevents users for attempting to play the game if the game settings were not found */
 if (!gameSettingsStr) {
-  alert("No Game Settings");
   location.href = "./index.html";
 }
 
-/** @type {{playerCount:Number, playerDetails:PlayerCharacterDetails[], boardSize:String, roundType:"best-of-three" | "best-of-nine" | "free-for-all"}} */
+/** @type {{playerCount:Number, playerDetails:PlayerCharacterDetails[], boardSize:String, roundType:"best-of-three" | "best-of-nine" | "free-for-all", turnDuration:Number | null, aiDifficulty: "easy" | "hard" | null}} */
 const gameSettings = JSON.parse(gameSettingsStr);
 
 console.log("gameSettings", gameSettings);
 
-// /** @type {PlayerData[]} */
-// const playerData = [
-//   { avatar: "X", name: "Ex", score: 0 },
-//   { avatar: "O", name: "Oh", score: 0 },
-// ];
-
+/** @type {PlayerCharacterDetails[]} */
 const playerData = gameSettings.playerDetails.map((item) => {
   return {
     avatar: item.avatar,
     name: item.name,
     score: 0,
-    color: item,
+    color: item.color,
     isAI: item.isAI,
   };
 });
+
+/** AI difficulty level */
+const aiDifficulty = gameSettings.aiDifficulty || undefined;
 
 /** @type {"best-of-three" | "best-of-nine" | "free-for-all"} */
 const roundType = gameSettings?.roundType ?? "best-of-three";
@@ -87,9 +79,132 @@ let gameBoardState = [];
 /** @type {number[][]} */
 const winConditions = [];
 
-let currentPlayer = playerData[0].avatar; // the starting player
+let currentPlayer = playerData[0].name; // the starting player
 
 let gameActive = true; // the state of the game whether its ongoing or not.
+
+/** Renders the type of board */
+(function () {
+  const gameMode = document.getElementById("round_mode_type");
+  if (gameSettings.roundType === "best-of-nine") {
+    gameMode.textContent = "Best Of Nine";
+  } else if (gameSettings.roundType === "best-of-three") {
+    gameMode.textContent = "Best Of Three";
+  } else {
+    gameMode.textContent = "Free For All";
+  }
+})();
+
+/** Holds the `setInterval` callback for the timer */
+let timer;
+/**
+ * Number of seconds for each players turn
+ * @type {number} */
+let timeLeft = gameSettings.turnDuration ?? 10;
+
+/** Resets the `timeLeft` back to the default value*/
+function resetTurnTimer() {
+  if (gameActive) {
+    timeLeft = gameSettings.turnDuration ?? 10;
+  }
+}
+
+/** Starts the timer countdown or counting from where we left off*/
+function startTimer() {
+  timer = setInterval(updateTimer, 1000);
+}
+
+/** Stops the timer countdown or pause the countdown*/
+function stopTimer() {
+  clearInterval(timer);
+}
+
+function updateTimer() {
+  document.getElementById("timer_countdown").innerText = timeLeft;
+  if (timeLeft > 0) {
+    timeLeft--;
+    // console.log(timeLeft);
+  } else {
+    /**Change player turn when players turn is over */
+    currentPlayer = getNextPlayer();
+    clearInterval(timer);
+    alert("Time's up!");
+    renderPlayerTurnTracker();
+    resetTurnTimer();
+    startTimer();
+    executeAIMoveSet();
+  }
+}
+
+function pauseGame() {
+  const gamePauseModal = document.querySelector(".game_pause_modal");
+  gamePauseModal.parentElement.classList.remove("hidden");
+  stopTimer();
+  gameActive = false;
+}
+
+function resumeGame() {
+  const gamePauseModal = document.querySelector(".game_pause_modal");
+  gamePauseModal.parentElement.classList.add("hidden");
+  if (roundType !== "free-for-all") {
+    startTimer();
+  }
+  gameActive = true;
+}
+
+function exitGame() {
+  window.localStorage.removeItem(GAME_SETTING_KEY);
+  window.location.reload();
+}
+
+if (roundType !== "free-for-all") {
+  /** @type {HTMLDivElement} */
+  const timerWrapper = document.getElementById("timer_wrapper");
+
+  /** @type {HTMLDivElement} */
+  const roundInstructionsModal = document.querySelector(".round_instructions");
+
+  if (roundInstructionsModal.parentElement.classList.contains("hidden")) {
+    roundInstructionsModal.parentElement.classList.remove("hidden");
+  }
+
+  /** @type {HTMLButtonElement} */
+  const roundInstructionConfirm = document.getElementById(
+    "round_instruction_confirm"
+  );
+
+  /** @type {HTMLSpanElement} */
+  const countDown = document.getElementById("timer_countdown");
+  console.log("countDown", countDown);
+
+  roundInstructionConfirm.addEventListener("click", (e) => {
+    e.preventDefault();
+    roundInstructionsModal.parentElement.classList.add("hidden");
+    startTimer();
+  });
+
+  document.getElementById("round_instructions_time_limit").textContent =
+    timeLeft;
+
+  if (timerWrapper.classList.contains("hidden")) {
+    timerWrapper.classList.remove("hidden");
+  }
+}
+
+function renderPlayerTurnTracker() {
+  /** @type {HTMLDivElement} */
+  const section = document.getElementById("player_turn_tracker");
+  section.innerHTML = "";
+  const currentPlayerObj = playerData.find(
+    (item) => item.name === currentPlayer
+  );
+  const playerImg = document.createElement("img");
+  playerImg.setAttribute("src", currentPlayerObj.avatar);
+  playerImg.setAttribute("alt", currentPlayerObj.name);
+  playerImg.classList.add("current_player_avatar");
+  section.appendChild(playerImg);
+}
+renderPlayerTurnTracker();
 
 /**
  * Renders the board using a specified number of rows and columns.
@@ -134,17 +249,23 @@ function renderScoreTracker() {
   scoreTracker.innerHTML = "";
   for (const player of playerData) {
     const sectionEle = document.createElement("section");
-    const h1Ele = document.createElement("h1");
-    h1Ele.textContent = player.avatar;
+    const img = document.createElement("img");
+    img.setAttribute("src", player.avatar);
+    img.setAttribute("alt", player.name);
+
     const divEle = document.createElement("div");
 
-    const pEle = document.createElement("div");
+    const pEle = document.createElement("p");
     pEle.textContent = player.name;
+    const spanEl = document.createElement("span");
+    spanEl.textContent = player.isAI ? " AI" : "";
+    spanEl.style.color = player.color;
+    pEle.appendChild(spanEl);
     const smallEle = document.createElement("small");
     smallEle.textContent = `Score: ${player.score}`;
 
     divEle.append(pEle, smallEle);
-    sectionEle.append(h1Ele, divEle);
+    sectionEle.append(img, divEle);
     scoreTracker.append(sectionEle);
   }
 }
@@ -207,15 +328,82 @@ generateWinConditionArray();
 /** Controls player turns */
 function getNextPlayer() {
   for (const player in playerData) {
-    if (currentPlayer === playerData[player].avatar) {
+    if (currentPlayer === playerData[player].name) {
       const nextPlayer = playerData[Number(player) + 1];
 
       if (nextPlayer !== undefined) {
-        return nextPlayer.avatar;
+        return nextPlayer.name;
       } else {
-        return playerData[0].avatar;
+        return playerData[0].name;
       }
     }
+  }
+}
+
+/** Random number generator
+ *
+ * Generates a random number within the range of `min` & `max`
+ *
+ * @returns {number}
+ */
+function getRandomInt(min, max) {
+  const minCeiled = Math.ceil(min);
+  const maxFloored = Math.floor(max);
+  return Math.floor(Math.random() * (maxFloored - minCeiled) + minCeiled);
+}
+
+/** Makes a play on a cell at random, simulating the AI's moveset on easy difficult */
+function easyAIAction() {
+  const emptyCells = [];
+  gameBoardState.forEach((item, index) => {
+    if (item === "") {
+      emptyCells.push(index);
+    }
+  });
+  const rand = getRandomInt(0, emptyCells.length - 1);
+  /* Make a random play  */
+  cellClicked(undefined, emptyCells[rand]);
+}
+
+/** Function triggers AI moveset */
+function executeAIMoveSet() {
+  const nextTurnPlayer = playerData.find((item) => item.name === currentPlayer);
+  if (!nextTurnPlayer) {
+    return;
+  }
+  if (nextTurnPlayer.isAI) {
+    console.log("RUN AI FUNCTIONALITY");
+    if (aiDifficulty === "easy") {
+      easyAIAction();
+    }
+
+    // function createBoard() {
+    //   const board = [];
+    //   for (let r = 0; r < boardStructure.ROWS; r++) {
+    //     const singleRow = [];
+    //     for (let c = 0; c < boardStructure.COLUMNS; c++) {
+    //       singleRow.push(null);
+    //     }
+    //     board.push(singleRow);
+    //   }
+    //   return board;
+    // }
+
+    // const boardSim = createBoard();
+
+    // const players = playerData.map((item) => item.name);
+
+    // // Example: Find best move for player "X"
+    // const bestMove = findBestMove(
+    //   boardSim,
+    //   currentPlayer,
+    //   players,
+    //   miniMaxCheckWinnerFunction,
+    //   calculateScore
+    // );
+    // console.log("bestMove", bestMove);
+
+    console.log("AI FUCNTIONALITY RAN");
   }
 }
 
@@ -243,19 +431,46 @@ for (let cellCount = 0; cellCount < cells.length; cellCount++) {
 
 /**
  *
- * @param {MouseEvent} clickedCellEvent
+ * @param {MouseEvent | undefined} clickedCellEvent
+ * @param {number | undefined} cellIndx
  */
-function cellClicked(clickedCellEvent) {
-  const clickedCell = clickedCellEvent.target;
-  let clickedCellIndex = clickedCell.id.replace("cell-", "");
-  clickedCellIndex = parseInt(clickedCellIndex) - 1;
+function cellClicked(clickedCellEvent, cellIndx) {
+  let clickedCellIndex;
+  if (clickedCellEvent) {
+    const clickedCell = clickedCellEvent.target;
+    clickedCellIndex = clickedCell.id.replace("cell-", "");
+    clickedCellIndex = parseInt(clickedCellIndex) - 1;
+  } else {
+    clickedCellIndex = cellIndx;
+  }
 
   if (!gameActive || gameBoardState[clickedCellIndex] !== "") {
     return;
   }
 
+  /**
+   * On each play of the timer is greater than 0
+   * reset the `timeLeft` to default
+   * else
+   * reset the `timeLeft` and restart the timer.
+   */
+  if (roundType !== "free-for-all") {
+    if (timeLeft > 0) {
+      resetTurnTimer();
+    } else {
+      resetTurnTimer();
+      startTimer();
+    }
+  }
   handlePlayerTurn(clickedCellIndex);
   updateUI();
+  renderPlayerTurnTracker();
+
+  const nextTurnPlayer = playerData.find((item) => item.name === currentPlayer);
+  if (!nextTurnPlayer) {
+    return;
+  }
+  executeAIMoveSet();
 }
 
 /**
@@ -264,15 +479,13 @@ function cellClicked(clickedCellEvent) {
 function updateUI() {
   for (let cellIndx = 0; cellIndx < cells.length; cellIndx++) {
     const player = playerData.find(
-      (item) => item.avatar === gameBoardState[cellIndx]
+      (item) => item.name === gameBoardState[cellIndx]
     );
     if (player) {
       cells[cellIndx].innerHTML = `
     <img style="width:100%;height:100%;object-fit:contain;" src="${player.avatar}" alt="${player.name}"/>
     `;
     }
-
-    // cells[cellIndx].innerText = gameBoardState[cellIndx];
   }
 }
 
@@ -328,6 +541,10 @@ function checkForWinOrDraw() {
 
   if (roundWon) {
     announceWinner(currentPlayer);
+    if (roundType !== "free-for-all") {
+      stopTimer();
+      resetTurnTimer();
+    }
     incrementPlayerScoreCount([currentPlayer]);
     gameActive = false;
 
@@ -340,7 +557,11 @@ function checkForWinOrDraw() {
 
   if (roundDraw) {
     announceDraw();
-    incrementPlayerScoreCount(playerData.map((item) => item.avatar));
+    if (roundType !== "free-for-all") {
+      stopTimer();
+      resetTurnTimer();
+    }
+    incrementPlayerScoreCount(playerData.map((item) => item.name));
     gameActive = false;
 
     renderScoreTracker();
@@ -369,8 +590,6 @@ function decrementRoundsLeft() {
       } else {
         gameOverModalWinnerLabel.textContent = `"${highestScorePlayer.name}" won`;
       }
-
-      console.log("GAME END");
     }
   }
 }
@@ -378,7 +597,7 @@ function decrementRoundsLeft() {
 /**
  * Function that gets the player with the highest score
  *
- * @returns {PlayerData | "same_score"}
+ * @returns {PlayerCharacterDetails | "same_score"}
  */
 function getWinner() {
   let highScore = 0;
@@ -417,7 +636,7 @@ function isSameScoreForAllPlayers() {
 function incrementPlayerScoreCount(playerArray) {
   playerArray.forEach((player) => {
     playerData.forEach((item) => {
-      if (item.avatar === player) {
+      if (item.name === player) {
         item.score = item.score + 1;
       }
     });
@@ -459,20 +678,28 @@ function announceDraw() {
 /**
  * Function to clear game state and player data
  *
- * @param {boolean} closeGameOverModal
+ * @param {?{closeGameOverModal: boolean, closePauseModal: boolean }} options
  *  */
-function resetGame(closeGameOverModal) {
+function resetGame(options) {
   const arr = [];
   for (let i = 0; i < gameBoardState.length; i++) {
     arr.push("");
   }
   gameBoardState = arr; // Clear the game board
   gameActive = true; // Set the game as active
-  currentPlayer = playerData[0].avatar; // Reset to player X
-  if (closeGameOverModal) {
+  currentPlayer = playerData[0].name; // Reset to player X
+  if (options && options.closeGameOverModal === true) {
     /** @type {HTMLDivElement} */
     const gameOverModal = document.querySelector(".game-over-modal");
     gameOverModal.parentElement.classList.add("hidden");
+  }
+  if (options && options.closePauseModal === true) {
+    const gamePauseModal = document.querySelector(".game_pause_modal");
+    gamePauseModal.parentElement.classList.add("hidden");
+  }
+  if (isOnGoingRound()) {
+    resetTurnTimer();
+    startTimer();
   }
 
   resetPlayerScore();
@@ -487,10 +714,14 @@ function resetGame(closeGameOverModal) {
     }
   }
   document.getElementById("gameMessage").innerText = "";
+  renderPlayerTurnTracker();
 }
 
-/** Function that clears the board for the next round */
-function nextGameRound() {
+/** Function that clears the board for the next round
+ *
+ * @param {boolean} activateGame
+ */
+function nextGameRound(activateGame) {
   const arr = [];
   for (let i = 0; i < gameBoardState.length; i++) {
     arr.push("");
@@ -498,10 +729,10 @@ function nextGameRound() {
   // Clear the game board
   gameBoardState = arr;
   // Set the game as active
-  if (isOnGoingRound()) {
+  if (isOnGoingRound() || activateGame) {
     gameActive = true;
   }
-  currentPlayer = playerData[0].avatar; // Reset to player X
+  currentPlayer = playerData[0].name; // Reset to player X
   // Clear all cells on the UI
   for (let i = 0; i < cells.length; i++) {
     cells[i].innerText = "";
@@ -510,12 +741,30 @@ function nextGameRound() {
     }
   }
   document.getElementById("gameMessage").innerText = "";
+  if (roundType !== "free-for-all") {
+    startTimer();
+  }
+  renderPlayerTurnTracker();
 }
 
 const resetButton = document.getElementById("resetButton");
 /** Game over modal play again button */
 const playAgain = document.getElementById("play_again");
-playAgain.addEventListener("click", () => resetGame(true));
+playAgain.addEventListener("click", () =>
+  resetGame({
+    closeGameOverModal: true,
+  })
+);
+
+/**
+ * @type {HTMLButtonElement}
+ */
+const trueResetBtn = document.getElementById("true-reset-btn");
+trueResetBtn.addEventListener("click", () =>
+  resetGame({
+    closePauseModal: true,
+  })
+);
 
 /**
  * Function that checks for on going rounds
@@ -533,6 +782,196 @@ if (isOnGoingRound()) {
   resetButton.textContent = "Next round";
   resetButton.addEventListener("click", nextGameRound, false);
 } else {
-  resetButton.textContent = "Reset Game";
-  resetButton.addEventListener("click", resetGame, false);
+  resetButton.textContent = "Next Game";
+  resetButton.addEventListener("click", () => nextGameRound(true), false);
 }
+
+// Utility Function: Calculate Score
+// function calculateScore(winner, depth) {
+//   if (winner === null) return 0; // No winner (draw)
+//   return 100 - depth; // Favor faster wins for the winner
+// }
+
+// function miniMaxCheckWinnerFunction(board) {
+//   const rows = board.length;
+//   const cols = board[0].length;
+
+//   // Helper function to check if all elements in an array are the same and not null
+//   function isUniformLine(line) {
+//     return line.every((cell) => cell !== null && cell === line[0]);
+//   }
+
+//   // Check rows
+//   for (let row = 0; row < rows; row++) {
+//     if (isUniformLine(board[row])) {
+//       return board[row][0]; // Return the winner's key
+//     }
+//   }
+
+//   // Check columns
+//   for (let col = 0; col < cols; col++) {
+//     const column = board.map((row) => row[col]);
+//     if (isUniformLine(column)) {
+//       return column[0]; // Return the winner's key
+//     }
+//   }
+
+//   // Check top-left to bottom-right diagonals
+//   const mainDiagonal = [];
+//   for (let i = 0; i < Math.min(rows, cols); i++) {
+//     mainDiagonal.push(board[i][i]);
+//   }
+//   if (isUniformLine(mainDiagonal)) {
+//     return mainDiagonal[0]; // Return the winner's key
+//   }
+
+//   // Check top-right to bottom-left diagonals
+//   const antiDiagonal = [];
+//   for (let i = 0; i < Math.min(rows, cols); i++) {
+//     antiDiagonal.push(board[i][cols - i - 1]);
+//   }
+//   if (isUniformLine(antiDiagonal)) {
+//     return antiDiagonal[0]; // Return the winner's key
+//   }
+
+//   // Check for a draw (no null values in the board)
+//   const isDraw = board.flat().every((cell) => cell !== null);
+//   if (isDraw) return "draw";
+
+//   return null; // No winner yet
+// }
+
+// // function miniMaxCheckWinnerFunction(board) {
+// //   let roundWon = false;
+// //   /**@type {string} */
+// //   let winnerName = "";
+
+// //   for (let i = 0; i < winConditions.length; i++) {
+// //     const arrToCompare = [];
+// //     const winCombinationCellIndex = [];
+// //     for (let j = 0; j < winConditions[i].length; j++) {
+// //       winCombinationCellIndex.push(winConditions[i][j]);
+// //       arrToCompare.push(board[winConditions[i][j]]);
+// //     }
+// //     const combinationMatch = identical(arrToCompare);
+// //     if (combinationMatch) {
+// //       roundWon = true;
+// //       winnerName = combinationMatch[0];
+// //       break;
+// //     }
+// //   }
+
+// //   if (roundWon) {
+// //     return winnerName;
+// //   }
+
+// //   let roundDraw = !board.includes("");
+
+// //   if (roundDraw) {
+// //     return "tie";
+// //   }
+
+// //   return null;
+// // }
+
+// function minimax(
+//   board,
+//   depth,
+//   currentPlayerIndex,
+//   players,
+//   checkWin,
+//   calculateScore
+// ) {
+//   const winner = checkWin(board); // Check if there's a winner or a draw
+//   console.log("winner", winner);
+//   if (winner !== null) {
+//     return calculateScore(winner, depth); // Score based on the winner
+//   }
+
+//   const currentPlayer = players[currentPlayerIndex]; // The player whose turn it is
+//   const isMaximizing = currentPlayerIndex === 0; // First player (index 0) tries to maximize score
+//   let bestEval = isMaximizing ? -Infinity : Infinity;
+
+//   for (let i = 0; i < board.length; i++) {
+//     for (let j = 0; j < board[i].length; j++) {
+//       if (board[i][j] === null) {
+//         // Empty spot
+//         board[i][j] = currentPlayer; // Make move
+//         const nextPlayerIndex = (currentPlayerIndex + 1) % players.length; // Move to the next player
+//         const eval = minimax(
+//           board,
+//           depth + 1,
+//           nextPlayerIndex,
+//           players,
+//           checkWin,
+//           calculateScore
+//         );
+//         board[i][j] = null; // Undo move
+//         bestEval = isMaximizing
+//           ? Math.max(bestEval, eval)
+//           : Math.min(bestEval, eval);
+//       }
+//     }
+//   }
+
+//   return bestEval;
+// }
+
+// function findBestMove(board, currentPlayer, players, checkWin, calculateScore) {
+//   let bestScore = -Infinity;
+//   let bestMove = null;
+
+//   const currentPlayerIndex = players.indexOf(currentPlayer); // Get the index of the current player
+
+//   for (let i = 0; i < board.length; i++) {
+//     for (let j = 0; j < board[i].length; j++) {
+//       if (board[i][j] === null) {
+//         // Empty spot
+//         board[i][j] = currentPlayer; // Make move
+//         const nextPlayerIndex = (currentPlayerIndex + 1) % players.length; // Move to the next player
+//         const moveScore = minimax(
+//           board,
+//           0,
+//           nextPlayerIndex,
+//           players,
+//           checkWin,
+//           calculateScore
+//         );
+//         board[i][j] = null; // Undo move
+//         if (moveScore > bestScore) {
+//           bestScore = moveScore;
+//           bestMove = { row: i, col: j };
+//         }
+//       }
+//     }
+//   }
+
+//   return bestMove;
+// }
+
+// function createBoard() {
+//   const board = [];
+//   for (let r = 0; r < boardStructure.ROWS; r++) {
+//     const singleRow = [];
+//     for (let c = 0; c < boardStructure.COLUMNS; c++) {
+//       singleRow.push(null);
+//     }
+//     board.push(singleRow);
+//   }
+//   return board;
+// }
+
+// const boardSim = createBoard();
+
+// const players = playerData.map((item) => item.name);
+// const testCurrentPlayer = players[0];
+
+// // Example: Find best move for player "X"
+// const bestMove = findBestMove(
+//   boardSim,
+//   testCurrentPlayer,
+//   players,
+//   miniMaxCheckWinnerFunction,
+//   calculateScore
+// );
+// console.log(bestMove);

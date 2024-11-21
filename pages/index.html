@@ -17,89 +17,108 @@
   </head>
 
   <body>
-    <section>
-      <form id="game-settings-form" class="game-settings-form">
-        <h1 class="main_heading">NoughtsXCrosses</h1>
-        <p class="main_deecription">
-          Welcome to the NoughtsXCrosses Game Settings! Customize your game
-          experience to your heart's content.
-        </p>
-        <button class="reset_form" type="button" onclick="location.reload()">
-          Reset settings
+    <form id="game-settings-form" class="game-settings-form">
+      <h1 class="main_heading">NoughtsXCrosses</h1>
+      <p class="main_deecription">
+        Welcome to the NoughtsXCrosses Game Settings! Customize your game
+        experience to your heart's content.
+      </p>
+      <button class="reset_form" type="button" onclick="location.reload()">
+        Reset settings
+      </button>
+      <label>
+        <p>Select Player Count</p>
+        <select name="player_count" id="player_count">
+          <option value="2">2 players</option>
+          <option value="3">3 players</option>
+          <option value="4">4 players</option>
+          <option value="5">5 players</option>
+          <option value="6">6 players</option>
+        </select>
+      </label>
+
+      <div class="avatar_exhibition"></div>
+
+      <p class="character_select_reminder gradient-text pulse"></p>
+
+      <div class="player_wrapper"></div>
+
+      <div class="next_avatar_selection">
+        <button
+          type="button"
+          id="next_avatar_selection_btn"
+          class="btn2"
+          style="padding: 5px; font-size: 12px"
+        >
+          Next player
         </button>
-        <label>
-          <p>Select Player Count</p>
-          <select name="player_count" id="player_count">
-            <option value="2">2 players</option>
-            <option value="3">3 players</option>
-            <option value="4">4 players</option>
-            <option value="5">5 players</option>
-            <option value="6">6 players</option>
-          </select>
-        </label>
+      </div>
 
-        <div class="avatar_exhibition"></div>
+      <label style="display: none" id="ai_difficulty_label">
+        <p>Select AI Difficulty Level</p>
+        <select name="ai_difficulty" id="ai_difficulty">
+          <option value="easy">Easy</option>
+          <option value="hard">Hard</option>
+        </select>
+      </label>
 
-        <p class="character_select_reminder gradient-text pulse"></p>
+      <label>
+        <p>Select Board Size</p>
+        <select name="board_size" id="board_size">
+          <option value="6#6">6 X 6 board</option>
+          <option value="7#7">7 X 7 board</option>
+          <option value="8#8">8 x 8 board</option>
+          <option value="11#11">11 X 11 board</option>
+          <option value="12#12">12 X 12 board</option>
+          <option value="custom">Customize your board</option>
+        </select>
+      </label>
 
-        <div class="player_wrapper"></div>
+      <div class="board_cust hidden">
+        <p style="font-weight: 500">Board customization</p>
+        <section>
+          <label>
+            <p>No. of rows</p>
+            <input min="1" max="12" type="number" id="rows_no" />
+            <p style="font-weight: 800" class="rows_no_error no_error"></p>
+          </label>
 
-        <div class="next_avatar_selection">
-          <button
-            type="button"
-            id="next_avatar_selection_btn"
-            class="btn2"
-            style="padding: 5px; font-size: 12px"
-          >
-            Next player
-          </button>
-        </div>
+          <label>
+            <p>No. of columns</p>
+            <input min="1" max="12" type="number" id="columns_no" />
+            <p style="font-weight: 800" class="columns_no_error no_error"></p>
+          </label>
+        </section>
+      </div>
 
-        <label>
-          <p>Select Board Size</p>
-          <select name="board_size" id="board_size">
-            <option value="6#6">6 X 6 board</option>
-            <option value="7#7">7 X 7 board</option>
-            <option value="8#8">8 x 8 board</option>
-            <option value="11#11">11 X 11 board</option>
-            <option value="12#12">12 X 12 board</option>
-            <option value="custom">Customize your board</option>
-          </select>
-        </label>
+      <label>
+        <p>Select Round Type</p>
+        <select name="round-type" id="round-type">
+          <option value="best-of-three">Best of three (3)</option>
+          <option value="best-of-nine">Best of nine (9)</option>
+          <option value="free-for-all">Free for all</option>
+        </select>
+      </label>
 
-        <div class="board_cust hidden">
-          <p style="font-weight: 500">Board customization</p>
-          <section>
-            <label>
-              <p>No. of rows</p>
-              <input min="1" max="12" type="number" id="rows_no" />
-              <p style="font-weight: 800" class="rows_no_error no_error"></p>
-            </label>
+      <label for="turn_duration" id="turn_duration_label">
+        <p>Turn Duration (in seconds)</p>
+        <small style="display: block; margin: 5px 0px"
+          >Only applies to best of three and nine round types</small
+        >
+        <input
+          name="turn_duration"
+          id="turn_duration"
+          type="number"
+          min="10"
+          max="120"
+        />
+        <p style="font-weight: 800" class="turn_dur_error no_error"></p>
+      </label>
 
-            <label>
-              <p>No. of columns</p>
-              <input min="1" max="12" type="number" id="columns_no" />
-              <p style="font-weight: 800" class="columns_no_error no_error"></p>
-            </label>
-          </section>
-        </div>
-
-        <label>
-          <p>Select Round Type</p>
-          <select name="round-type" id="round-type">
-            <option value="best-of-three">Best of three (3)</option>
-            <option value="best-of-nine">Best of nine (9)</option>
-            <option value="free-for-all">Free for all</option>
-          </select>
-        </label>
-
-        <div class="start-btn-wrapper">
-          <button disabled id="start_btn" type="submit" class="btn">
-            Start
-          </button>
-        </div>
-      </form>
-    </section>
+      <div class="start-btn-wrapper">
+        <button disabled id="start_btn" type="submit" class="btn">Start</button>
+      </div>
+    </form>
 
     <script type="text/javascript" src="../assets/js/main.script.js"></script>
   </body>

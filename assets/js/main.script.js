@@ -34,6 +34,9 @@ const rowsNo = document.getElementById("rows_no");
 /** @type {HTMLInputElement} */
 const columnsNo = document.getElementById("columns_no");
 
+/** @type {HTMLInputElement} */
+const turnDuration = document.getElementById("turn_duration");
+
 /** @type {HTMLButtonElement} */
 const nextAvatarSelectionBtn = document.getElementById(
   "next_avatar_selection_btn"
@@ -46,6 +49,9 @@ const characterSelectReminder = document.querySelector(
 
 /** @type {HTMLButtonElement} */
 const startBtn = document.getElementById("start_btn");
+
+/** @type {HTMLSelectElement} */
+const aiDifficultyEl = document.getElementById("ai_difficulty");
 
 /** Player avatars
  *
@@ -387,6 +393,20 @@ function checkForSameUsername(plyDet) {
   return false; // No duplicates found
 }
 
+/** Checks all players for an AI player
+ * @param {PlayerCharacterDetails[]} plyDet
+ *
+ * @return {boolean}
+ */
+function checkForAIPlayer(plyDet) {
+  for (const player of plyDet) {
+    if (player.isAI) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /** Changes the avater selection turn
  * @param {Event} e
  */
@@ -466,6 +486,13 @@ function nextPlayerSelectionTurnHandler(e) {
 
   renderPlayerInfo(playerCharacterDetails);
   renderCharacterSelectionReminder();
+
+  /**Check for an AI player each time player details are saved */
+  const isAIPlayer = checkForAIPlayer(playerCharacterDetails);
+
+  if (isAIPlayer) {
+    document.getElementById("ai_difficulty_label").style.display = "block";
+  }
 }
 
 nextAvatarSelectionBtn.addEventListener(
@@ -504,25 +531,54 @@ function onInputCustomSizeEntry(e) {
   }
 }
 
+/**Handles inputs into turn duration field
+ * @param {Event} e
+ */
+function onInputTurnDuration(e) {
+  const value = Number(e.target.value);
+  const errorTag = getInputErrorParagraph("turn_dur_error");
+  if (value < 10) {
+    errorTag.textContent = "Minimum of 10 seconds";
+  } else if (value > 120) {
+    errorTag.textContent = "Maximum of 120 seconds";
+  } else {
+    errorTag.textContent = "";
+  }
+}
+
 /**
  * Returns the error paragraph element based on the input field id
  *
- * @param {"rows_no" | "columns_no"} id
+ * @param {"rows_no" | "columns_no" | "turn_dur_error"} id
  * @returns {HTMLParagraphElement}
  */
 function getInputErrorParagraph(id) {
   if (id === "columns_no") {
     return document.querySelector(".columns_no_error");
+  } else if (id === "turn_dur_error") {
+    return document.querySelector(".turn_dur_error");
   } else {
     return document.querySelector(".rows_no_error");
   }
 }
+
+turnDuration.addEventListener("input", onInputTurnDuration);
 
 rowsNo.addEventListener("input", onInputCustomSizeEntry);
 
 columnsNo.addEventListener("input", onInputCustomSizeEntry);
 
 boardSize.addEventListener("change", onChangeBoardSizeHandler);
+
+roundTypeInput.addEventListener("change", (e) => {
+  /** @type {HTMLLabelElement} */
+  const turnLabel = document.getElementById("turn_duration_label");
+  if (e.target.value === "free-for-all") {
+    turnLabel.style.display = "none";
+  } else {
+    turnLabel.style.display = "block";
+  }
+});
 
 /**
  * Returns a boolean when the custom row size or column size validation fails
@@ -539,6 +595,25 @@ const validateCustomBoardFields = (id, value) => {
     return false;
   } else if (value < 1) {
     errorTag.textContent = "Minimum of 1 rows";
+    return false;
+  } else {
+    errorTag.textContent = "";
+    return true;
+  }
+};
+
+/**
+ * Returns a boolean based on the validty of turn duration
+ * @param {number} value
+ * @return {boolean}
+ */
+const validateTurnDurationField = (value) => {
+  const errorTag = getInputErrorParagraph("turn_dur_error");
+  if (value < 10) {
+    errorTag.textContent = "Minimum of 10 seconds";
+    return false;
+  } else if (value > 120) {
+    errorTag.textContent = "Maximum of 120 seconds";
     return false;
   } else {
     errorTag.textContent = "";
@@ -607,6 +682,17 @@ function onSubmitGameSettingsHandler(event) {
     }
   }
 
+  if (
+    roundTypeInput.value === "best-of-nine" ||
+    roundTypeInput.value === "best-of-three"
+  ) {
+    const turnDurationValue = Number(turnDuration.value);
+    const isturnDurationValid = validateTurnDurationField(turnDurationValue);
+    if (!isturnDurationValid) {
+      return;
+    }
+  }
+
   /** Destructuring (unpacking) the validation function return object */
   const { isValid, details } = validateUserDetails(
     Number(playerCount.value),
@@ -618,6 +704,8 @@ function onSubmitGameSettingsHandler(event) {
     return;
   }
 
+  const isAI = checkForAIPlayer(playerCharacterDetails);
+
   const gameSettings = {
     playerCount: playerCharacterDetails.length,
     playerDetails: playerCharacterDetails,
@@ -626,6 +714,11 @@ function onSubmitGameSettingsHandler(event) {
         ? boardSize.value
         : `${rowsNo.value}#${columnsNo.value}`,
     roundType: roundTypeInput.value,
+    turnDuration:
+      roundTypeInput.value !== "free-for-all"
+        ? Number(turnDuration.value)
+        : null,
+    aiDifficulty: isAI ? aiDifficultyEl.value : null,
   };
 
   window.localStorage.setItem("gameSettings", JSON.stringify(gameSettings));

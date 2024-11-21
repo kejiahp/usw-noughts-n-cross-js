@@ -15,27 +15,43 @@
     <link href="../assets/css/index.styling.css" rel="stylesheet" />
   </head>
   <body>
-    <div>
-      <h1>Game Mode</h1>
-      <h1>Round Mode</h1>
+    <header>
+      <div>
+        <h5 class="game_title gradient-text">NoughtsXCrosses</h5>
+        <p class="" style="font-size: 14px; font-weight: 800">Round Mode</p>
+        <h1 id="round_mode_type" class=""></h1>
+      </div>
+
+      <div id="timer_wrapper" class="timer_wrapper hidden">
+        <h4 title="Next Players Turn In">
+          <span id="timer_countdown">20</span>s
+        </h4>
+      </div>
+    </header>
+
+    <button
+      class="pause_game"
+      id="pause_game"
+      title="Pause Game"
+      onclick="pauseGame()"
+    >
+      <img src="../assets/images/video-pause-button.png" alt="Pause Game" />
+    </button>
+
+    <div style="height: 100px"></div>
+
+    <div class="player_turn_wrapper">
+      <p class="gradient-text">Current Player</p>
+      <section id="player_turn_tracker"></section>
     </div>
+
     <div id="scoreTracker"></div>
-    <div id="tic-tac-toe-board">
-      <!-- <div class="row">
-        <div class="cell" id="cell-1"></div>
-        <div class="cell" id="cell-2"></div>
-        <div class="cell" id="cell-3"></div>
-      </div>
-      <div class="row">
-        <div class="cell" id="cell-4"></div>
-        <div class="cell" id="cell-5"></div>
-        <div class="cell" id="cell-6"></div>
-      </div>
-      <div class="row">
-        <div class="cell" id="cell-7"></div>
-        <div class="cell" id="cell-8"></div>
-        <div class="cell" id="cell-9"></div>
-      </div> -->
+    <div class="board-container">
+      <button id="resetButton" class="btn">Reset Game</button>
+      <!-- <button id="resetButton" class="btn">Reset Game</button> -->
+
+      <div id="gameMessage" class="game-message gradient-text2"></div>
+      <div id="tic-tac-toe-board"></div>
     </div>
 
     <div class="modal hidden">
@@ -49,9 +65,34 @@
       </section>
     </div>
 
-    <button id="resetButton" class="btn">Reset Game</button>
-    <!-- <button id="resetButton" class="btn">Reset Game</button> -->
-    <div id="gameMessage" class="game-message"></div>
+    <div class="hidden modal">
+      <section class="round_instructions">
+        <h1 class="gradient-text">Round Instructions</h1>
+
+        <p>
+          Each players turn as a set time limit of
+          <span id="round_instructions_time_limit">30</span> seconds
+        </p>
+
+        <button
+          type="button"
+          id="round_instruction_confirm"
+          style="margin: 20px 0px 0px 0px"
+          class="btn"
+        >
+          OK!
+        </button>
+      </section>
+    </div>
+
+    <div class="modal hidden">
+      <section class="game_pause_modal">
+        <h1 style="margin-bottom: 10px" class="gradient-text">Paused</h1>
+        <button onclick="resumeGame()" class="btn">Resume</button>
+        <button id="true-reset-btn" class="btn3">Reset Game</button>
+        <button onclick="exitGame()" class="btn2">Exit</button>
+      </section>
+    </div>
 
     <script src="../assets/js/index.script.js"></script>
   </body>

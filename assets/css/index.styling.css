@@ -17,14 +17,114 @@ button {
 
 body {
   font-family: var(--quicksand-font);
+  padding: 20px;
+  min-height: 100vh;
+  margin: 0;
+  background: linear-gradient(to right, #74ebd5, #acb6e5);
+  color: #333;
+}
+
+header {
+  display: flex;
+  width: fit-content;
+  gap: 30px;
+  align-items: center;
+  min-height: 50px;
+  padding: 10px;
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(0.6rem);
+  -webkit-backdrop-filter: blur(0.6rem);
+  position: fixed;
+  top: 20px;
+  left: 0;
+  right: 0;
+  margin-left: auto;
+  margin-right: auto;
+  z-index: 10;
+  box-shadow: 0 1px #00000014;
+  white-space: nowrap;
+  overflow: auto;
+}
+
+header .game_title {
+  font-family: var(--press-start-2p);
+  margin-bottom: 10px;
+}
+header #round_mode_type {
+  font-size: 20px;
+  font-family: var(--press-start-2p);
+}
+
+.timer_wrapper h4 {
+  font-size: 24px;
+  font-family: var(--press-start-2p);
+  color: #e31948;
+}
+
+.pause_game {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  padding: 5px 2px;
+  cursor: pointer;
+  outline: none;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  padding: 5px;
+  background-color: transparent;
+  transition: background-color, border;
+  transition-timing-function: ease-in-out;
+  transition-duration: 300ms;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.pause_game:hover {
+  background-color: #d3d3d3;
+  border: 1px solid #333;
+}
+.pause_game img {
+  width: 40px;
+  height: 40px;
+}
+
+.player_turn_wrapper {
+  position: fixed;
+  top: 20px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  flex-direction: column-reverse;
+}
+
+.player_turn_wrapper p {
+  font-weight: 800;
+}
+
+#player_turn_tracker {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+#player_turn_tracker .current_player_avatar {
+  object-fit: contain;
+  width: 50px;
+  height: 50px;
+  border: 2px solid #7c54ff;
+  border-radius: 5000px;
+  background-color: #acb6e5;
+}
+
+.board-container {
+  margin-top: 30px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
-  margin: 0;
-  /* background: linear-gradient(to right, #74ebd5, #acb6e5); */
-  color: #333;
 }
 
 #tic-tac-toe-board {
@@ -48,8 +148,8 @@ body {
   font-size: 2rem;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  width: 100px;
-  height: 100px;
+  width: 80px;
+  height: 80px;
 }
 
 .bg-green {
@@ -65,7 +165,7 @@ body {
 }
 
 #resetButton {
-  margin: 20px 0px;
+  margin: 10px 0px;
 }
 
 .btn {
@@ -103,11 +203,33 @@ body {
   background-color: #555;
 }
 
+.btn3 {
+  background-color: #d3d3d3;
+  display: inline-block;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: bold;
+  padding: 10px 20px;
+  text-decoration: none;
+  border-radius: 5px;
+  border: none;
+  transition-property: color, opacity, background-color;
+  transition-duration: 0.4s;
+  transition-timing-function: ease-in-out;
+}
+.btn3:hover {
+  opacity: 0.8;
+}
+
 #scoreTracker {
   padding: 10px;
   background-color: var(--white);
   border-radius: 10px;
   margin: 10px;
+  display: flex;
+  gap: 20px;
+  justify-content: space-around;
+  flex-wrap: wrap;
 }
 
 #scoreTracker section {
@@ -117,10 +239,18 @@ body {
   margin: 10px 0px;
 }
 
+#scoreTracker img {
+  object-fit: contain;
+  width: 80px;
+  height: 80px;
+}
+
 #scoreTracker h1 {
   font-size: 28px;
 }
 #scoreTracker p {
+  font-size: 14px;
+  font-family: var(--press-start-2p);
   font-weight: 400;
 }
 #scoreTracker small {
@@ -129,13 +259,15 @@ body {
 
 .game-message {
   text-align: center;
-  margin-top: 20px;
+  margin: 20px 0px;
   font-size: 20px;
   color: #333;
+  font-family: var(--press-start-2p);
 }
 
 .modal {
   position: fixed;
+  z-index: 50;
   top: 0;
   left: 0;
   height: 100vh;
@@ -167,6 +299,14 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
+.gradient-text2 {
+  background: linear-gradient(90deg, #e31948 25%, #22c55e 50%, #7c54ff 100%);
+  color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 .game-over-modal h1 {
   font-family: var(--press-start-2p);
   font-size: 30px;
@@ -183,9 +323,67 @@ body {
   display: none;
 }
 
+.round_instructions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  background-color: var(--white);
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.round_instructions h1 {
+  font-family: var(--press-start-2p);
+  font-size: 30px;
+}
+
+.round_instructions p {
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.game_pause_modal {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  background-color: var(--white);
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.game_pause_modal h1 {
+  font-family: var(--press-start-2p);
+  font-size: 30px;
+}
+
 @media (max-width: 600px) {
   .cell {
     width: 60px;
     height: 60px;
+  }
+}
+
+@media screen and (max-width: 490px) {
+  header {
+    width: 100%;
+  }
+
+  .pause_game {
+    top: 105px;
+  }
+
+  .player_turn_wrapper {
+    top: 105px;
+  }
+}
+
+@media (max-width: 400px) {
+  .cell {
+    width: 40px;
+    height: 40px;
   }
 }

@@ -13,6 +13,14 @@
 
 body {
   font-family: var(--quicksand-font);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  min-height: 100vh;
+  margin: 0;
+  background: linear-gradient(to right, #74ebd5, #acb6e5);
+  color: #333;
 }
 
 button,
@@ -22,6 +30,11 @@ input {
 }
 
 .game-settings-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: var(--white);
+  width: 600px;
   margin: 20px;
   padding: 10px;
   border-radius: 10px;
@@ -34,6 +47,7 @@ input {
   margin: 40px 0px 10px 0px;
   text-align: center;
   font-size: 28px;
+  word-break: break-all;
 }
 
 .main_deecription {
@@ -146,7 +160,7 @@ input {
 .player_wrapper {
   display: flex;
   align-items: center;
-  /* justify-content: space-around; */
+  justify-content: space-around;
   flex-wrap: wrap;
   gap: 10px;
   margin: 20px 10px;
@@ -232,6 +246,12 @@ input {
 
 .pulse {
   animation: pulse 2s infinite;
+}
+
+@media screen and (max-width: 490px) {
+  .game-settings-form {
+    width: 100%;
+  }
 }
 
 @keyframes pulse {
