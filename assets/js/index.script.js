@@ -8,970 +8,783 @@
  */
 
 /**
- * @typedef {Object.<string, string>} PlayerScore
+ * @typedef {Object} CharacterAvatars
+ * @property {string} alt
+ * @property {string} src
+ * @property {string} playerColor
  */
 
-/**
- * @typedef {Object} BoardStructure
- * @property {number} COLUMNS
- * @property {number} ROWS
- */
+const PLAYER_USERNAME = "player_username";
+const PLAYER_AI = "player_ai";
+const AVATAR_BTN = "avatar_btn";
 
-const GAME_SETTING_KEY = "gameSettings";
+const gameSettingForm = document.getElementById("game-settings-form");
 
-const gameSettingsStr = window.localStorage.getItem(GAME_SETTING_KEY);
+/** @type {HTMLSelectElement} */
+const roundTypeInput = document.getElementById("round-type");
 
-/** Prevents users for attempting to play the game if the game settings were not found */
-if (!gameSettingsStr) {
-  location.href = "./index.html";
-}
+const playerCount = document.getElementById("player_count");
 
-/** @type {{playerCount:Number, playerDetails:PlayerCharacterDetails[], boardSize:String, roundType:"best-of-three" | "best-of-nine" | "free-for-all", turnDuration:Number | null, aiDifficulty: "easy" | "hard" | null}} */
-const gameSettings = JSON.parse(gameSettingsStr);
+/** @type {HTMLSelectElement} */
+const boardSize = document.getElementById("board_size");
 
-console.log("gameSettings", gameSettings);
+/** @type {HTMLInputElement} */
+const rowsNo = document.getElementById("rows_no");
 
-/** @type {PlayerCharacterDetails[]} */
-const playerData = gameSettings.playerDetails.map((item) => {
-  return {
-    avatar: item.avatar,
-    name: item.name,
-    score: 0,
-    color: item.color,
-    isAI: item.isAI,
-  };
+/** @type {HTMLInputElement} */
+const columnsNo = document.getElementById("columns_no");
+
+/** @type {HTMLInputElement} */
+const turnDuration = document.getElementById("turn_duration");
+
+/** @type {HTMLButtonElement} */
+const nextAvatarSelectionBtn = document.getElementById(
+  "next_avatar_selection_btn"
+);
+
+/** @type {HTMLParagraphElement} */
+const characterSelectReminder = document.querySelector(
+  ".character_select_reminder"
+);
+
+/** @type {HTMLButtonElement} */
+const startBtn = document.getElementById("start_btn");
+
+/** @type {HTMLSelectElement} */
+const aiDifficultyEl = document.getElementById("ai_difficulty");
+
+/** @type {HTMLAudioElement} */
+let charAudio = new Audio();
+
+/** Enables/Disables all forms of audio */
+let allowAudio = true;
+
+/** @type {HTMLButtonElement} */
+const audioBtn = document.querySelector(".audio_btn");
+
+audioBtn.addEventListener("click", (e) => {
+  /** @type {HTMLAudioElement} */
+  const bgMusic = document.getElementById("bgMusic");
+  /**@type {HTMLImageElement} */
+  const imgNode = audioBtn.children[0];
+  bgMusic.volume = 0.3;
+  if (bgMusic.paused) {
+    bgMusic.play();
+    imgNode.setAttribute("src", "../assets/images/mute.png");
+  } else {
+    bgMusic.pause();
+    imgNode.setAttribute("src", "../assets/images/audio.png");
+  }
 });
 
-/** AI difficulty level */
-const aiDifficulty = gameSettings.aiDifficulty || undefined;
-
-/** @type {"best-of-three" | "best-of-nine" | "free-for-all"} */
-const roundType = gameSettings?.roundType ?? "best-of-three";
-
-/** @type {number | undefined} */
-let roundsLeft =
-  roundType === "best-of-nine"
-    ? 9
-    : roundType === "best-of-three"
-    ? 3
-    : undefined;
-
-/**Get the number of rows & columns from the gameSettings */
-const [ROW_NO, COLUMN_NO] = gameSettings.boardSize.split("#");
+/** Player avatars
+ *
+ * `playerColor` is used to uniquely match and avatar to a player
+ *
+ * @type {CharacterAvatars[]}
+ */
+let characterAvatar = [
+  { alt: "goku", src: "../assets/avatars/goku.png", playerColor: "" },
+  { alt: "vegeta", src: "../assets/avatars/vegeta.png", playerColor: "" },
+  { alt: "frieza", src: "../assets/avatars/frieza.png", playerColor: "" },
+  { alt: "naruto", src: "../assets/avatars/naruto.png", playerColor: "" },
+  { alt: "madara", src: "../assets/avatars/madara.png", playerColor: "" },
+  { alt: "sasuke", src: "../assets/avatars/sasuke.png", playerColor: "" },
+];
 
 /**
- * Object depicting the number of rows and columns of the board.
+ * All character audio sounds
  *
- * Default number of rows and columns is 3
+ * @type {Array<{name:string,src:string}>}
+ */
+const characterAudio = [
+  { name: "goku", src: "../assets/audio/goku.mp3" },
+  { name: "frieza", src: "../assets/audio/frieza.mp3" },
+  { name: "madara", src: "../assets/audio/madara.mp3" },
+  { name: "naruto", src: "../assets/audio/naruto.mp3" },
+  { name: "sasuke", src: "../assets/audio/sasuke.mp3" },
+  { name: "vegeta", src: "../assets/audio/vegeta.mp3" },
+];
+
+/** Array of colors for players */
+const playerColors = [
+  "#fca5a5",
+  "#bef264",
+  "#7dd3fc",
+  "#d8b4fe",
+  "#fcd34d",
+  "#cbd5e1",
+];
+
+/** Tracks player character selection turns via player index number
+ * @type {number | undefined}
+ */
+let avatarSelectionTurn = 0;
+
+/**
+ * Array of player information
+ * @type {PlayerCharacterDetails[]} */
+let playerCharacterDetails = [];
+
+/** Event listeners to player username input fields & make ai checkboxes
  *
- * @type {BoardStructure} */
-const boardStructure = {
-  COLUMNS: COLUMN_NO,
-  ROWS: ROW_NO,
+ * Ensuring the global state is always up to date on re-render
+ */
+function addEventListenerToPlayerInfoFields() {
+  for (let i = 0; i < playerCharacterDetails.length; i++) {
+    document
+      .getElementById(`${PLAYER_USERNAME}_${i + 1}`)
+      .addEventListener("input", (e) => setPlayerUsername(e.target.value));
+
+    const isAICheckBox = document.getElementById(`${PLAYER_AI}_${i + 1}`);
+
+    if (isAICheckBox) {
+      isAICheckBox.addEventListener("change", (e) =>
+        setPlayerAIProp(e.target.checked)
+      );
+    }
+  }
+}
+
+/**
+ *  Renders player details
+ *
+ * @param {PlayerCharacterDetails[]} playerDt
+ * */
+function renderPlayerInfo(playerDt) {
+  const playerWrapper = document.querySelector(".player_wrapper");
+  playerWrapper.innerHTML = "";
+
+  for (let i in playerDt) {
+    const player = playerDt[i];
+    const iNum = Number(i);
+    const playerDetail = document.createElement("div");
+    playerDetail.setAttribute("class", "player_detail");
+    playerDetail.setAttribute("id", `player_detail_${iNum + 1}`);
+    const aiCheckBox = `<label style="margin:0px 0px" for="${PLAYER_AI}_${
+      iNum + 1
+    }">
+<input disabled ${
+      player.isAI ? "checked" : ""
+    } type="checkbox" id="${PLAYER_AI}_${iNum + 1}" name="${PLAYER_AI}_${
+      iNum + 1
+    }" />
+<small>Make AI</small>
+</label>
+`;
+
+    playerDetail.innerHTML = `
+              <h5>Player ${iNum + 1}</h5>
+            <img style='border-color: ${player.color};' src="${
+      player.avatar
+    }" alt="player${iNum + 1} image" />
+            <label>
+              <input disabled id="${PLAYER_USERNAME}_${
+      iNum + 1
+    }" type="text" placeholder="Player ${iNum + 1} Username" value="${
+      player.name
+    }" />
+            </label>
+            ${iNum + 1 !== 1 ? aiCheckBox : "<p style='height:21px;'></p>"}
+    `;
+    playerWrapper.appendChild(playerDetail);
+  }
+
+  // apply event listeners
+  addEventListenerToPlayerInfoFields();
+
+  // allow player selection on each render
+  allowPlayerSelection();
+}
+
+/**
+ * Plays the audio file related to a character
+ *
+ * @param {string} name
+ */
+function playAudio(name) {
+  const charAudioObj = characterAudio.find((item) => item.name === name);
+  if (charAudioObj) {
+    charAudio.pause();
+    charAudio = new Audio(charAudioObj.src);
+    charAudio.volume = 1.0;
+    charAudio.play();
+  }
+}
+
+/** Renders avatar exhibition listing
+ *
+ * @param {CharacterAvatars[]} characterAv
+ */
+function renderAvatarExhibition(characterAv) {
+  /** @type {HTMLDivElement} */
+  const avatarExhibition = document.querySelector(".avatar_exhibition");
+  avatarExhibition.innerHTML = "";
+  for (let i in characterAv) {
+    const charAvt = characterAv[i];
+    const iNum = Number(i);
+
+    const avatarButton = document.createElement("button");
+    avatarButton.type = "button";
+    avatarButton.style.borderColor = charAvt.playerColor;
+    avatarButton.id = `${AVATAR_BTN}_${iNum + 1}`;
+    avatarButton.innerHTML = `
+  <img src=${charAvt.src} alt=${charAvt.alt} />
+  `;
+    if (charAvt.playerColor) {
+      avatarButton.disabled = true;
+    }
+    avatarButton.addEventListener("click", (e) => {
+      if (e.target.disabled === true) {
+        return;
+      }
+      if (avatarSelectionTurn === undefined) {
+        return;
+      }
+      const avatar = e.target.getAttribute("src");
+      const avatarAlt = e.target.getAttribute("alt");
+      if (!avatar) {
+        return;
+      }
+
+      /**Plays audio file related to clicked avatar */
+      playAudio(avatarAlt);
+
+      /** Sets clicked character as players avatar */
+      setPlayerAvatar(avatar);
+
+      /** To ensure players can preview multiple avatars during their selections
+       *
+       * Unselects previous avatar selections for choosing player
+       */
+      unselectPreviousAvatarSelection(
+        playerCharacterDetails[avatarSelectionTurn].color
+      );
+
+      if (avatarSelectionTurn !== undefined) {
+        setAvatarColor(iNum, playerCharacterDetails[avatarSelectionTurn].color);
+      }
+    });
+    avatarExhibition.appendChild(avatarButton);
+  }
+}
+
+/** removes avatar selection color */
+function unselectPreviousAvatarSelection(color) {
+  characterAvatar.forEach((item) => {
+    if (item.playerColor === color) {
+      item.playerColor = "";
+    }
+  });
+}
+
+/** Disables all avatars prevent avatar selection */
+function disableAvatarButtons() {
+  const avatarExhibition = document.querySelector(".avatar_exhibition");
+
+  for (const i of avatarExhibition.childNodes) {
+    if (i.tagName === "BUTTON") {
+      i.disabled = true;
+    }
+  }
+}
+
+/** sets players avatar
+ *
+ * @param {string} src
+ */
+function setPlayerAvatar(src) {
+  if (avatarSelectionTurn === undefined) {
+    return;
+  }
+  playerCharacterDetails[avatarSelectionTurn] = {
+    ...playerCharacterDetails[avatarSelectionTurn],
+    avatar: src,
+  };
+  renderPlayerInfo(playerCharacterDetails);
+}
+
+/** sets `playerColor` to avatars, ensuring avatar uniqueness
+ *
+ * @param {string} color
+ * @param {number} index
+ */
+function setAvatarColor(index, color) {
+  characterAvatar[index] = {
+    ...characterAvatar[index],
+    playerColor: color,
+  };
+
+  renderAvatarExhibition(characterAvatar);
+}
+
+/** function to set players username, `name` property
+ *
+ * @param {string} username
+ */
+function setPlayerUsername(username) {
+  if (avatarSelectionTurn === undefined) {
+    return;
+  }
+  playerCharacterDetails[avatarSelectionTurn] = {
+    ...playerCharacterDetails[avatarSelectionTurn],
+    name: username,
+  };
+}
+
+/** function to set players `isAI` property
+ * @params {boolean} checked
+ */
+function setPlayerAIProp(checked) {
+  if (avatarSelectionTurn === undefined) {
+    return;
+  }
+  playerCharacterDetails[avatarSelectionTurn] = {
+    ...playerCharacterDetails[avatarSelectionTurn],
+    isAI: checked,
+  };
+}
+
+/**
+ * Handles changes in player count
+ *
+ * And initially renders the playerInformation
+ * @param {Event | undefined} e
+ */
+function onChangePlayerCount(e) {
+  // if e.target.value is undefined assigne the 2 to constant `value`
+  const value = Number(e?.target?.value ?? 2);
+  playerCharacterDetails = [];
+  /** Creates an array with length provided, all array elements are undefined */
+  const undefinedArr = Array.from({ length: value });
+  undefinedArr.forEach((_, index) => {
+    playerCharacterDetails.push({
+      avatar: "",
+      name: "",
+      score: 0,
+      color: playerColors[index],
+      isAI: false,
+    });
+  });
+
+  characterAvatar.forEach((item) => {
+    item.playerColor = "";
+  });
+
+  /** @type {HTMLDivElement} */
+  const avatarExhibition = document.querySelector(".avatar_exhibition");
+  if (avatarExhibition.classList.contains("hidden")) {
+    avatarExhibition.classList.remove("hidden");
+  }
+  if (nextAvatarSelectionBtn.classList.contains("hidden")) {
+    nextAvatarSelectionBtn.classList.remove("hidden");
+  }
+
+  avatarSelectionTurn = 0;
+  nextAvatarSelectionBtn.textContent = "Next Player";
+  /** Disable start button */
+  startBtn.disabled = true;
+  /**INITIAL AVATAR EXHIBITION RENDER */
+  renderAvatarExhibition(characterAvatar);
+  /**INITIAL PLAYER INFO RENDER */
+  renderPlayerInfo(playerCharacterDetails);
+}
+
+/** initialize player selection */
+onChangePlayerCount(undefined);
+
+playerCount.addEventListener("change", onChangePlayerCount);
+
+/**Controls the rendering of player selections */
+function renderCharacterSelectionReminder() {
+  characterSelectReminder.textContent =
+    avatarSelectionTurn !== undefined
+      ? `
+  "Player ${avatarSelectionTurn + 1}" choose your avatar and enter your details
+  `
+      : "";
+}
+
+/** Base on selection turn; enable input fields and buttons allowing a player to select their avatar details  */
+function allowPlayerSelection() {
+  if (avatarSelectionTurn === undefined) {
+    return;
+  }
+  /** @type {HTMLInputElement} */
+  const inputFld = document.getElementById(
+    `${PLAYER_USERNAME}_${avatarSelectionTurn + 1}`
+  );
+  /** @type {HTMLInputElement | null} */
+  const aiBtn = document.getElementById(
+    `${PLAYER_AI}_${avatarSelectionTurn + 1}`
+  );
+  inputFld.disabled = false;
+  /** The first player cannot be AI, hence the check */
+  if (aiBtn) {
+    aiBtn.disabled = false;
+  }
+
+  /** Initial render of reminder */
+  renderCharacterSelectionReminder();
+}
+
+/** Check player details for player entries with the same username
+ *
+ * @param {PlayerCharacterDetails[]} plyDet
+ * @return {boolean}
+ */
+function checkForSameUsername(plyDet) {
+  const nameCounts = {};
+
+  for (const obj of plyDet) {
+    const name = obj.name;
+
+    // Skip empty strings
+    if (!name || name.trim() === "") {
+      continue;
+    }
+
+    const lowerCaseName = name.toLowerCase();
+
+    if (nameCounts[lowerCaseName]) {
+      return true; // Found a duplicate
+    }
+    nameCounts[lowerCaseName] = 1;
+  }
+
+  return false; // No duplicates found
+}
+
+/** Checks all players for an AI player
+ * @param {PlayerCharacterDetails[]} plyDet
+ *
+ * @return {boolean}
+ */
+function checkForAIPlayer(plyDet) {
+  for (const player of plyDet) {
+    if (player.isAI) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Changes the avater selection turn
+ * @param {Event} e
+ */
+function nextPlayerSelectionTurnHandler(e) {
+  e.preventDefault();
+
+  if (avatarSelectionTurn === undefined) {
+    return;
+  }
+
+  /** @type {HTMLInputElement} */
+  const inputFld = document.getElementById(
+    `${PLAYER_USERNAME}_${avatarSelectionTurn + 1}`
+  );
+  /** @type {HTMLInputElement | null} */
+  const aiBtn = document.getElementById(
+    `${PLAYER_AI}_${avatarSelectionTurn + 1}`
+  );
+
+  if (playerCharacterDetails[avatarSelectionTurn].avatar === "") {
+    alert(`Player ${avatarSelectionTurn + 1}'s avatar is required`);
+    return;
+  }
+
+  if (inputFld.value === "") {
+    alert(`Player ${avatarSelectionTurn + 1}'s username is required`);
+    return;
+  } else if (inputFld.value.length < 3) {
+    alert(
+      `Player ${
+        avatarSelectionTurn + 1
+      }'s username must be a minimum of 3 characters`
+    );
+    return;
+  }
+
+  /** Destructure (unpack) return object */
+  const isSameNameFound = checkForSameUsername(playerCharacterDetails);
+
+  if (isSameNameFound) {
+    alert(`Player ${avatarSelectionTurn + 1}'s username must be unique`);
+    return;
+  }
+
+  playerCharacterDetails[avatarSelectionTurn] = {
+    ...playerCharacterDetails[avatarSelectionTurn],
+    isAI: aiBtn?.checked ?? false,
+    name: inputFld.value,
+  };
+
+  /** if avatar selection is on the last element player assign undefined to `avatarSelectionTurn` */
+  if (avatarSelectionTurn === playerCharacterDetails.length - 1) {
+    if (nextAvatarSelectionBtn.textContent === "Save") {
+      /** Enable start button */
+      startBtn.disabled = false;
+    }
+
+    avatarSelectionTurn = undefined;
+    // hide the next player button when their are no more selection turns
+    nextAvatarSelectionBtn.classList.add("hidden");
+
+    disableAvatarButtons();
+
+    // hide the character exhibition listing
+    /** @type {HTMLDivElement} */
+    const avatarExhibition = document.querySelector(".avatar_exhibition");
+    avatarExhibition.classList.add("hidden");
+  } else {
+    avatarSelectionTurn += 1;
+
+    if (avatarSelectionTurn === playerCharacterDetails.length - 1) {
+      nextAvatarSelectionBtn.textContent = "Save";
+    }
+
+    renderAvatarExhibition(characterAvatar);
+  }
+
+  renderPlayerInfo(playerCharacterDetails);
+  renderCharacterSelectionReminder();
+
+  /**Check for an AI player each time player details are saved */
+  const isAIPlayer = checkForAIPlayer(playerCharacterDetails);
+
+  if (isAIPlayer) {
+    document.getElementById("ai_difficulty_label").style.display = "block";
+  }
+}
+
+nextAvatarSelectionBtn.addEventListener(
+  "click",
+  nextPlayerSelectionTurnHandler
+);
+
+/**
+ * Handles changes in board size options
+ * @param {Event} e
+ */
+function onChangeBoardSizeHandler(e) {
+  const boardCust = document.querySelector(".board_cust");
+  if (e.target.value === "custom") {
+    boardCust.classList.remove("hidden");
+  } else {
+    if (!boardCust.classList.contains("hidden")) {
+      boardCust.classList.add("hidden");
+    }
+  }
+}
+
+/**
+ * Handles inputs into custom board size fields
+ * @param {Event} e
+ */
+function onInputCustomSizeEntry(e) {
+  const value = Number(e.target.value);
+  const errorTag = getInputErrorParagraph(e.target.id);
+  if (value > 12) {
+    errorTag.textContent = "Maximum of 12 rows";
+  } else if (value < 1) {
+    errorTag.textContent = "Minimum of 1 rows";
+  } else {
+    errorTag.textContent = "";
+  }
+}
+
+/**Handles inputs into turn duration field
+ * @param {Event} e
+ */
+function onInputTurnDuration(e) {
+  const value = Number(e.target.value);
+  const errorTag = getInputErrorParagraph("turn_dur_error");
+  if (value < 10) {
+    errorTag.textContent = "Minimum of 10 seconds";
+  } else if (value > 120) {
+    errorTag.textContent = "Maximum of 120 seconds";
+  } else {
+    errorTag.textContent = "";
+  }
+}
+
+/**
+ * Returns the error paragraph element based on the input field id
+ *
+ * @param {"rows_no" | "columns_no" | "turn_dur_error"} id
+ * @returns {HTMLParagraphElement}
+ */
+function getInputErrorParagraph(id) {
+  if (id === "columns_no") {
+    return document.querySelector(".columns_no_error");
+  } else if (id === "turn_dur_error") {
+    return document.querySelector(".turn_dur_error");
+  } else {
+    return document.querySelector(".rows_no_error");
+  }
+}
+
+turnDuration.addEventListener("input", onInputTurnDuration);
+
+rowsNo.addEventListener("input", onInputCustomSizeEntry);
+
+columnsNo.addEventListener("input", onInputCustomSizeEntry);
+
+boardSize.addEventListener("change", onChangeBoardSizeHandler);
+
+roundTypeInput.addEventListener("change", (e) => {
+  /** @type {HTMLLabelElement} */
+  const turnLabel = document.getElementById("turn_duration_label");
+  if (e.target.value === "free-for-all") {
+    turnLabel.style.display = "none";
+  } else {
+    turnLabel.style.display = "block";
+  }
+});
+
+/**
+ * Returns a boolean when the custom row size or column size validation fails
+ *
+ * @param {"rows_no" | "columns_no"} id
+ * @param {number} value
+ *
+ * @returns {boolean}
+ */
+const validateCustomBoardFields = (id, value) => {
+  const errorTag = getInputErrorParagraph(id);
+  if (value > 12) {
+    errorTag.textContent = "Maximum of 12 rows";
+    return false;
+  } else if (value < 1) {
+    errorTag.textContent = "Minimum of 1 rows";
+    return false;
+  } else {
+    errorTag.textContent = "";
+    return true;
+  }
 };
 
 /**
- * Current game board state. This can be later on overwritten by the `renderBoard` function
- *
- *  @type {string[]} */
-let gameBoardState = [];
-
-/** @type {number[][]} */
-const winConditions = [];
-
-let currentPlayer = playerData[0].name; // the starting player
-
-let gameActive = true; // the state of the game whether its ongoing or not.
-
-/** Renders the type of board */
-(function () {
-  const gameMode = document.getElementById("round_mode_type");
-  if (gameSettings.roundType === "best-of-nine") {
-    gameMode.textContent = "Best Of Nine";
-  } else if (gameSettings.roundType === "best-of-three") {
-    gameMode.textContent = "Best Of Three";
+ * Returns a boolean based on the validty of turn duration
+ * @param {number} value
+ * @return {boolean}
+ */
+const validateTurnDurationField = (value) => {
+  const errorTag = getInputErrorParagraph("turn_dur_error");
+  if (value < 10) {
+    errorTag.textContent = "Minimum of 10 seconds";
+    return false;
+  } else if (value > 120) {
+    errorTag.textContent = "Maximum of 120 seconds";
+    return false;
   } else {
-    gameMode.textContent = "Free For All";
+    errorTag.textContent = "";
+    return true;
   }
-})();
+};
 
-/** Holds the `setInterval` callback for the timer */
-let timer;
 /**
- * Number of seconds for each players turn
- * @type {number} */
-let timeLeft = gameSettings.turnDuration ?? 10;
-
-/** Resets the `timeLeft` back to the default value*/
-function resetTurnTimer() {
-  if (gameActive) {
-    timeLeft = gameSettings.turnDuration ?? 10;
-  }
-}
-
-/** Starts the timer countdown or counting from where we left off*/
-function startTimer() {
-  timer = setInterval(updateTimer, 1000);
-}
-
-/** Stops the timer countdown or pause the countdown*/
-function stopTimer() {
-  clearInterval(timer);
-}
-
-function updateTimer() {
-  document.getElementById("timer_countdown").innerText = timeLeft;
-  if (timeLeft > 0) {
-    timeLeft--;
-    // console.log(timeLeft);
-  } else {
-    /**Change player turn when players turn is over */
-    currentPlayer = getNextPlayer();
-    clearInterval(timer);
-    alert("Time's up!");
-    renderPlayerTurnTracker();
-    resetTurnTimer();
-    startTimer();
-    executeAIMoveSet();
-  }
-}
-
-function pauseGame() {
-  const gamePauseModal = document.querySelector(".game_pause_modal");
-  gamePauseModal.parentElement.classList.remove("hidden");
-  stopTimer();
-  gameActive = false;
-}
-
-function resumeGame() {
-  const gamePauseModal = document.querySelector(".game_pause_modal");
-  gamePauseModal.parentElement.classList.add("hidden");
-  if (roundType !== "free-for-all") {
-    startTimer();
-  }
-  gameActive = true;
-}
-
-function exitGame() {
-  window.localStorage.removeItem(GAME_SETTING_KEY);
-  window.location.reload();
-}
-
-if (roundType !== "free-for-all") {
-  /** @type {HTMLDivElement} */
-  const timerWrapper = document.getElementById("timer_wrapper");
-
-  /** @type {HTMLDivElement} */
-  const roundInstructionsModal = document.querySelector(".round_instructions");
-
-  if (roundInstructionsModal.parentElement.classList.contains("hidden")) {
-    roundInstructionsModal.parentElement.classList.remove("hidden");
+ *
+ * @param {number} plyCnt
+ * @param {PlayerCharacterDetails[]} plyDet
+ *
+ * @returns {{isValid:Boolean, details:String | undefined}}
+ */
+function validateUserDetails(plyCnt, plyDet) {
+  if (plyDet.length !== plyCnt) {
+    return { isValid: false, details: "Invalid player count" };
   }
 
-  /** @type {HTMLButtonElement} */
-  const roundInstructionConfirm = document.getElementById(
-    "round_instruction_confirm"
+  /** Destructure (unpack) return object */
+  const isSameNameFound = checkForSameUsername(plyDet);
+
+  if (isSameNameFound) {
+    alert(`Player usernames must be unique`);
+    return;
+  }
+
+  for (let i = 0; i < plyDet.length; i++) {
+    const ply = plyDet[i];
+    if (ply.avatar === "") {
+      return {
+        isValid: false,
+        details: `Player ${i + 1}'s avatar is required`,
+      };
+    } else if (ply.name === "") {
+      return {
+        isValid: false,
+        details: `Player ${i + 1}'s username is required`,
+      };
+    } else if (ply.name.length < 3) {
+      return {
+        isValid: false,
+        details: `Player ${i + 1}'s username must be a minimum of 3 characters`,
+      };
+    }
+  }
+
+  return { isValid: true, details: undefined };
+}
+
+/**
+ * Handles submission of game settings
+ *
+ * @param {SubmitEvent} event
+ */
+function onSubmitGameSettingsHandler(event) {
+  event.preventDefault();
+
+  if (boardSize.value === "custom") {
+    const rowValue = Number(rowsNo.value);
+    const columnValue = Number(columnsNo.value);
+    const isColValid = validateCustomBoardFields("columns_no", columnValue);
+    const isRowValid = validateCustomBoardFields("rows_no", rowValue);
+    if (!isColValid || !isRowValid) {
+      return;
+    }
+  }
+
+  if (
+    roundTypeInput.value === "best-of-nine" ||
+    roundTypeInput.value === "best-of-three"
+  ) {
+    const turnDurationValue = Number(turnDuration.value);
+    const isturnDurationValid = validateTurnDurationField(turnDurationValue);
+    if (!isturnDurationValid) {
+      return;
+    }
+  }
+
+  /** Destructuring (unpacking) the validation function return object */
+  const { isValid, details } = validateUserDetails(
+    Number(playerCount.value),
+    playerCharacterDetails
   );
 
-  /** @type {HTMLSpanElement} */
-  const countDown = document.getElementById("timer_countdown");
-  console.log("countDown", countDown);
-
-  roundInstructionConfirm.addEventListener("click", (e) => {
-    e.preventDefault();
-    roundInstructionsModal.parentElement.classList.add("hidden");
-    startTimer();
-  });
-
-  document.getElementById("round_instructions_time_limit").textContent =
-    timeLeft;
-
-  if (timerWrapper.classList.contains("hidden")) {
-    timerWrapper.classList.remove("hidden");
-  }
-}
-
-function renderPlayerTurnTracker() {
-  /** @type {HTMLDivElement} */
-  const section = document.getElementById("player_turn_tracker");
-  section.innerHTML = "";
-  const currentPlayerObj = playerData.find(
-    (item) => item.name === currentPlayer
-  );
-  const playerImg = document.createElement("img");
-  playerImg.setAttribute("src", currentPlayerObj.avatar);
-  playerImg.setAttribute("alt", currentPlayerObj.name);
-  playerImg.classList.add("current_player_avatar");
-  section.appendChild(playerImg);
-}
-renderPlayerTurnTracker();
-
-/**
- * Renders the board using a specified number of rows and columns.
- *
- * @param {number} columnCnt
- * @param {number} rowCnt
- */
-(function renderBoard(
-  columnCnt = boardStructure["COLUMNS"],
-  rowCnt = boardStructure["ROWS"]
-) {
-  const gameBoardDom = document.getElementById("tic-tac-toe-board");
-  /** Keeps track of the number of cells created */
-  let cellCnt = 0;
-  for (let r = 0; r < rowCnt; r++) {
-    const rowDiv = document.createElement("div");
-    rowDiv.setAttribute("id", "row");
-    rowDiv.classList.add("row");
-
-    for (let c = 0; c < columnCnt; c++) {
-      cellCnt += 1;
-      const columnDiv = document.createElement("div");
-      columnDiv.classList.add("cell");
-      columnDiv.setAttribute("id", `cell-${cellCnt}`);
-      rowDiv.append(columnDiv);
-    }
-
-    gameBoardDom.append(rowDiv);
-  }
-
-  // Overwrite the game board state
-  for (let item = 0; item < cellCnt; item++) {
-    gameBoardState.push("");
-  }
-})();
-
-/**
- * Renders the score tracker, displaying player information
- */
-function renderScoreTracker() {
-  const scoreTracker = document.getElementById("scoreTracker");
-  scoreTracker.innerHTML = "";
-  for (const player of playerData) {
-    const sectionEle = document.createElement("section");
-    const img = document.createElement("img");
-    img.setAttribute("src", player.avatar);
-    img.setAttribute("alt", player.name);
-
-    const divEle = document.createElement("div");
-
-    const pEle = document.createElement("p");
-    pEle.textContent = player.name;
-    const spanEl = document.createElement("span");
-    spanEl.textContent = player.isAI ? " AI" : "";
-    spanEl.style.color = player.color;
-    pEle.appendChild(spanEl);
-    const smallEle = document.createElement("small");
-    smallEle.textContent = `Score: ${player.score}`;
-
-    divEle.append(pEle, smallEle);
-    sectionEle.append(img, divEle);
-    scoreTracker.append(sectionEle);
-  }
-}
-
-renderScoreTracker();
-
-/**
- * Function to generate the win condition array for the game
- */
-function generateWinConditionArray() {
-  /** Boolean checking if diagonal win conditions are possible */
-  const isDiagonalWinPossible =
-    boardStructure["COLUMNS"] === boardStructure["ROWS"];
-
-  const gameBoardStateCopy = [];
-
-  for (let i in gameBoardState) {
-    gameBoardStateCopy.push(Number(i));
-  }
-
-  // get all row win combinations
-  for (let rowWin = 0; rowWin < boardStructure["ROWS"]; rowWin++) {
-    const combination = gameBoardStateCopy.slice(
-      rowWin * boardStructure["COLUMNS"],
-      boardStructure["COLUMNS"] * (rowWin + 1)
-    );
-    winConditions.push(combination);
-  }
-  // get all column win combinations
-  for (let colWin = 0; colWin < boardStructure["COLUMNS"]; colWin++) {
-    const combination = [];
-    for (let rowWin = 0; rowWin < boardStructure["ROWS"]; rowWin++) {
-      combination.push(rowWin * boardStructure["COLUMNS"] + colWin);
-    }
-    winConditions.push(combination);
-  }
-
-  // stop executing the function if there is no possibility of a diagonal win
-  if (!isDiagonalWinPossible) {
+  if (!isValid) {
+    alert("Validation Failed:" + "\n\n" + details);
     return;
   }
 
-  const ldiaWinCombination = [];
-  // get the diagonal win conditions from the top left of the board to the bottom right
-  for (let rdiaWin = 0; rdiaWin < boardStructure["ROWS"]; rdiaWin++) {
-    ldiaWinCombination.push(rdiaWin * boardStructure["ROWS"] + rdiaWin);
-  }
-  winConditions.push(ldiaWinCombination);
+  const isAI = checkForAIPlayer(playerCharacterDetails);
 
-  const rdiaWinCombination = [];
-  // get the diagonal win conditions from the top right to the board to the bottom left
-  for (let ldiaWin = 0; ldiaWin < boardStructure["ROWS"]; ldiaWin++) {
-    rdiaWinCombination.push((ldiaWin + 1) * (boardStructure["ROWS"] - 1));
-  }
-  winConditions.push(rdiaWinCombination);
+  const gameSettings = {
+    playerCount: playerCharacterDetails.length,
+    playerDetails: playerCharacterDetails,
+    boardSize:
+      boardSize.value !== "custom"
+        ? boardSize.value
+        : `${rowsNo.value}#${columnsNo.value}`,
+    roundType: roundTypeInput.value,
+    turnDuration:
+      roundTypeInput.value !== "free-for-all"
+        ? Number(turnDuration.value)
+        : null,
+    aiDifficulty: isAI ? aiDifficultyEl.value : null,
+  };
+
+  window.localStorage.setItem("gameSettings", JSON.stringify(gameSettings));
+  location.href = "./main.html";
 }
 
-generateWinConditionArray();
-
-/** Controls player turns */
-function getNextPlayer() {
-  for (const player in playerData) {
-    if (currentPlayer === playerData[player].name) {
-      const nextPlayer = playerData[Number(player) + 1];
-
-      if (nextPlayer !== undefined) {
-        return nextPlayer.name;
-      } else {
-        return playerData[0].name;
-      }
-    }
-  }
-}
-
-/** Random number generator
- *
- * Generates a random number within the range of `min` & `max`
- *
- * @returns {number}
- */
-function getRandomInt(min, max) {
-  const minCeiled = Math.ceil(min);
-  const maxFloored = Math.floor(max);
-  return Math.floor(Math.random() * (maxFloored - minCeiled) + minCeiled);
-}
-
-/** Makes a play on a cell at random, simulating the AI's moveset on easy difficult */
-function easyAIAction() {
-  const emptyCells = [];
-  gameBoardState.forEach((item, index) => {
-    if (item === "") {
-      emptyCells.push(index);
-    }
-  });
-  const rand = getRandomInt(0, emptyCells.length - 1);
-  /* Make a random play  */
-  cellClicked(undefined, emptyCells[rand]);
-}
-
-/** Function triggers AI moveset */
-function executeAIMoveSet() {
-  const nextTurnPlayer = playerData.find((item) => item.name === currentPlayer);
-  if (!nextTurnPlayer) {
-    return;
-  }
-  if (nextTurnPlayer.isAI) {
-    console.log("RUN AI FUNCTIONALITY");
-    if (aiDifficulty === "easy") {
-      easyAIAction();
-    }
-
-    // function createBoard() {
-    //   const board = [];
-    //   for (let r = 0; r < boardStructure.ROWS; r++) {
-    //     const singleRow = [];
-    //     for (let c = 0; c < boardStructure.COLUMNS; c++) {
-    //       singleRow.push(null);
-    //     }
-    //     board.push(singleRow);
-    //   }
-    //   return board;
-    // }
-
-    // const boardSim = createBoard();
-
-    // const players = playerData.map((item) => item.name);
-
-    // // Example: Find best move for player "X"
-    // const bestMove = findBestMove(
-    //   boardSim,
-    //   currentPlayer,
-    //   players,
-    //   miniMaxCheckWinnerFunction,
-    //   calculateScore
-    // );
-    // console.log("bestMove", bestMove);
-
-    console.log("AI FUCNTIONALITY RAN");
-  }
-}
-
-/**
- * Function to handleToggling of Player Turns on board cell click
- * @param {number} clickedCellIndex
- * @returns {void}
- */
-function handlePlayerTurn(clickedCellIndex) {
-  if (!gameActive || gameBoardState[clickedCellIndex] !== "") {
-    return;
-  }
-
-  gameBoardState[clickedCellIndex] = currentPlayer;
-  checkForWinOrDraw();
-  currentPlayer = getNextPlayer();
-}
-
-/** @type {HTMLDivElement[]} */
-const cells = document.querySelectorAll(".cell");
-for (let cellCount = 0; cellCount < cells.length; cellCount++) {
-  const cellItem = cells[cellCount];
-  cellItem.addEventListener("click", cellClicked, false);
-}
-
-/**
- *
- * @param {MouseEvent | undefined} clickedCellEvent
- * @param {number | undefined} cellIndx
- */
-function cellClicked(clickedCellEvent, cellIndx) {
-  let clickedCellIndex;
-  if (clickedCellEvent) {
-    const clickedCell = clickedCellEvent.target;
-    clickedCellIndex = clickedCell.id.replace("cell-", "");
-    clickedCellIndex = parseInt(clickedCellIndex) - 1;
-  } else {
-    clickedCellIndex = cellIndx;
-  }
-
-  if (!gameActive || gameBoardState[clickedCellIndex] !== "") {
-    return;
-  }
-
-  /**
-   * On each play of the timer is greater than 0
-   * reset the `timeLeft` to default
-   * else
-   * reset the `timeLeft` and restart the timer.
-   */
-  if (roundType !== "free-for-all") {
-    if (timeLeft > 0) {
-      resetTurnTimer();
-    } else {
-      resetTurnTimer();
-      startTimer();
-    }
-  }
-  handlePlayerTurn(clickedCellIndex);
-  updateUI();
-  renderPlayerTurnTracker();
-
-  const nextTurnPlayer = playerData.find((item) => item.name === currentPlayer);
-  if (!nextTurnPlayer) {
-    return;
-  }
-  executeAIMoveSet();
-}
-
-/**
- * Updates the UI rendering the respective player characters in the appropraite board cells
- */
-function updateUI() {
-  for (let cellIndx = 0; cellIndx < cells.length; cellIndx++) {
-    const player = playerData.find(
-      (item) => item.name === gameBoardState[cellIndx]
-    );
-    if (player) {
-      cells[cellIndx].innerHTML = `
-    <img style="width:100%;height:100%;object-fit:contain;" src="${player.avatar}" alt="${player.name}"/>
-    `;
-    }
-  }
-}
-
-/**
- * Check if array items are same.
- *
- * **NOTE:** Always returns false if an empty string is found
- *
- * @param {string[]} array
- * @returns {boolean}
- * */
-function identical(array) {
-  for (var i = 0; i < array.length - 1; i++) {
-    // prevent the function from running on empty strings
-    if (array[i] === "") {
-      return false;
-    }
-    if (array[i] !== array[i + 1]) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/**
- *
- * @param {number[]} array
- */
-function colorWinCell(array) {
-  for (const item of array) {
-    document.getElementById(`cell-${item + 1}`).classList.add("bg-green");
-  }
-}
-
-/** Checks all possible win conditions, if a winner is found the game ends and a winner is announced */
-function checkForWinOrDraw() {
-  let roundWon = false;
-
-  for (let i = 0; i < winConditions.length; i++) {
-    const arrToCompare = [];
-    const winCombinationCellIndex = [];
-    for (let j = 0; j < winConditions[i].length; j++) {
-      winCombinationCellIndex.push(winConditions[i][j]);
-      arrToCompare.push(gameBoardState[winConditions[i][j]]);
-    }
-    const combinationMatch = identical(arrToCompare);
-    if (combinationMatch) {
-      roundWon = true;
-      colorWinCell(winCombinationCellIndex);
-      break;
-    }
-  }
-
-  if (roundWon) {
-    announceWinner(currentPlayer);
-    if (roundType !== "free-for-all") {
-      stopTimer();
-      resetTurnTimer();
-    }
-    incrementPlayerScoreCount([currentPlayer]);
-    gameActive = false;
-
-    renderScoreTracker();
-    decrementRoundsLeft();
-    return;
-  }
-
-  let roundDraw = !gameBoardState.includes("");
-
-  if (roundDraw) {
-    announceDraw();
-    if (roundType !== "free-for-all") {
-      stopTimer();
-      resetTurnTimer();
-    }
-    incrementPlayerScoreCount(playerData.map((item) => item.name));
-    gameActive = false;
-
-    renderScoreTracker();
-    decrementRoundsLeft();
-    return;
-  }
-}
-
-/**
- * Keeps track of the number of rounds played when `roundType` is of values `best-of-nine` and `best-of-three`
- */
-function decrementRoundsLeft() {
-  if (isOnGoingRound()) {
-    roundsLeft -= 1;
-
-    if (roundsLeft === 0) {
-      /** @type {HTMLDivElement} */
-      const gameOverModal = document.querySelector(".game-over-modal");
-
-      gameOverModal.parentElement.classList.remove("hidden");
-      const gameOverModalWinnerLabel = document.querySelector(".winner_name");
-
-      const highestScorePlayer = getWinner();
-      if (highestScorePlayer === "same_score") {
-        gameOverModalWinnerLabel.textContent = `Oh...Its a draw😮`;
-      } else {
-        gameOverModalWinnerLabel.textContent = `"${highestScorePlayer.name}" won`;
-      }
-    }
-  }
-}
-
-/**
- * Function that gets the player with the highest score
- *
- * @returns {PlayerCharacterDetails | "same_score"}
- */
-function getWinner() {
-  let highScore = 0;
-  let playerName = "";
-
-  if (isSameScoreForAllPlayers()) {
-    return "same_score";
-  }
-
-  for (const item of playerData) {
-    if (item.score > highScore) {
-      highScore = item.score;
-      playerName = item.name;
-    }
-  }
-
-  return playerData.find((item) => item.name === playerName) ?? playerData[0];
-}
-
-/** Function that checks if all players have the same score */
-function isSameScoreForAllPlayers() {
-  let score = playerData[0].score;
-  for (const item of playerData) {
-    if (score !== item.score) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/**
- * Increments player score count
- *
- * @param {string[]} playerArray
- */
-function incrementPlayerScoreCount(playerArray) {
-  playerArray.forEach((player) => {
-    playerData.forEach((item) => {
-      if (item.name === player) {
-        item.score = item.score + 1;
-      }
-    });
-  });
-}
-
-/**
- * Function to reset all player score to zero
- *
- * @return {void}
- * */
-function resetPlayerScore() {
-  playerData.forEach((player) => {
-    player.score = 0;
-  });
-}
-
-function resetRoundsLeft() {
-  roundsLeft =
-    roundType === "best-of-nine"
-      ? 9
-      : roundType === "best-of-three"
-      ? 3
-      : undefined;
-}
-
-/** Announce winner of the game */
-function announceWinner(player) {
-  const messageElement = document.getElementById("gameMessage");
-  messageElement.innerText = `Player ${player} Wins!`;
-}
-
-/** Announce the game was a draw */
-function announceDraw() {
-  const messageElement = document.getElementById("gameMessage");
-  messageElement.innerText = "Game Draw!";
-}
-
-/**
- * Function to clear game state and player data
- *
- * @param {?{closeGameOverModal: boolean, closePauseModal: boolean }} options
- *  */
-function resetGame(options) {
-  const arr = [];
-  for (let i = 0; i < gameBoardState.length; i++) {
-    arr.push("");
-  }
-  gameBoardState = arr; // Clear the game board
-  gameActive = true; // Set the game as active
-  currentPlayer = playerData[0].name; // Reset to player X
-  if (options && options.closeGameOverModal === true) {
-    /** @type {HTMLDivElement} */
-    const gameOverModal = document.querySelector(".game-over-modal");
-    gameOverModal.parentElement.classList.add("hidden");
-  }
-  if (options && options.closePauseModal === true) {
-    const gamePauseModal = document.querySelector(".game_pause_modal");
-    gamePauseModal.parentElement.classList.add("hidden");
-  }
-  if (isOnGoingRound()) {
-    resetTurnTimer();
-    startTimer();
-  }
-
-  resetPlayerScore();
-  renderScoreTracker();
-  resetRoundsLeft();
-
-  // Clear all cells on the UI
-  for (let i = 0; i < cells.length; i++) {
-    cells[i].innerText = "";
-    if (cells[i].classList.contains("bg-green")) {
-      cells[i].classList.remove("bg-green");
-    }
-  }
-  document.getElementById("gameMessage").innerText = "";
-  renderPlayerTurnTracker();
-}
-
-/** Function that clears the board for the next round
- *
- * @param {boolean} activateGame
- */
-function nextGameRound(activateGame) {
-  const arr = [];
-  for (let i = 0; i < gameBoardState.length; i++) {
-    arr.push("");
-  }
-  // Clear the game board
-  gameBoardState = arr;
-  // Set the game as active
-  if (isOnGoingRound() || activateGame) {
-    gameActive = true;
-  }
-  currentPlayer = playerData[0].name; // Reset to player X
-  // Clear all cells on the UI
-  for (let i = 0; i < cells.length; i++) {
-    cells[i].innerText = "";
-    if (cells[i].classList.contains("bg-green")) {
-      cells[i].classList.remove("bg-green");
-    }
-  }
-  document.getElementById("gameMessage").innerText = "";
-  if (roundType !== "free-for-all") {
-    startTimer();
-  }
-  renderPlayerTurnTracker();
-}
-
-const resetButton = document.getElementById("resetButton");
-/** Game over modal play again button */
-const playAgain = document.getElementById("play_again");
-playAgain.addEventListener("click", () =>
-  resetGame({
-    closeGameOverModal: true,
-  })
-);
-
-/**
- * @type {HTMLButtonElement}
- */
-const trueResetBtn = document.getElementById("true-reset-btn");
-trueResetBtn.addEventListener("click", () =>
-  resetGame({
-    closePauseModal: true,
-  })
-);
-
-/**
- * Function that checks for on going rounds
- * @returns boolean
- */
-function isOnGoingRound() {
-  return (
-    roundType !== "free-for-all" &&
-    typeof roundsLeft === "number" &&
-    roundsLeft > 0
-  );
-}
-
-if (isOnGoingRound()) {
-  resetButton.textContent = "Next round";
-  resetButton.addEventListener("click", nextGameRound, false);
-} else {
-  resetButton.textContent = "Next Game";
-  resetButton.addEventListener("click", () => nextGameRound(true), false);
-}
-
-// Utility Function: Calculate Score
-// function calculateScore(winner, depth) {
-//   if (winner === null) return 0; // No winner (draw)
-//   return 100 - depth; // Favor faster wins for the winner
-// }
-
-// function miniMaxCheckWinnerFunction(board) {
-//   const rows = board.length;
-//   const cols = board[0].length;
-
-//   // Helper function to check if all elements in an array are the same and not null
-//   function isUniformLine(line) {
-//     return line.every((cell) => cell !== null && cell === line[0]);
-//   }
-
-//   // Check rows
-//   for (let row = 0; row < rows; row++) {
-//     if (isUniformLine(board[row])) {
-//       return board[row][0]; // Return the winner's key
-//     }
-//   }
-
-//   // Check columns
-//   for (let col = 0; col < cols; col++) {
-//     const column = board.map((row) => row[col]);
-//     if (isUniformLine(column)) {
-//       return column[0]; // Return the winner's key
-//     }
-//   }
-
-//   // Check top-left to bottom-right diagonals
-//   const mainDiagonal = [];
-//   for (let i = 0; i < Math.min(rows, cols); i++) {
-//     mainDiagonal.push(board[i][i]);
-//   }
-//   if (isUniformLine(mainDiagonal)) {
-//     return mainDiagonal[0]; // Return the winner's key
-//   }
-
-//   // Check top-right to bottom-left diagonals
-//   const antiDiagonal = [];
-//   for (let i = 0; i < Math.min(rows, cols); i++) {
-//     antiDiagonal.push(board[i][cols - i - 1]);
-//   }
-//   if (isUniformLine(antiDiagonal)) {
-//     return antiDiagonal[0]; // Return the winner's key
-//   }
-
-//   // Check for a draw (no null values in the board)
-//   const isDraw = board.flat().every((cell) => cell !== null);
-//   if (isDraw) return "draw";
-
-//   return null; // No winner yet
-// }
-
-// // function miniMaxCheckWinnerFunction(board) {
-// //   let roundWon = false;
-// //   /**@type {string} */
-// //   let winnerName = "";
-
-// //   for (let i = 0; i < winConditions.length; i++) {
-// //     const arrToCompare = [];
-// //     const winCombinationCellIndex = [];
-// //     for (let j = 0; j < winConditions[i].length; j++) {
-// //       winCombinationCellIndex.push(winConditions[i][j]);
-// //       arrToCompare.push(board[winConditions[i][j]]);
-// //     }
-// //     const combinationMatch = identical(arrToCompare);
-// //     if (combinationMatch) {
-// //       roundWon = true;
-// //       winnerName = combinationMatch[0];
-// //       break;
-// //     }
-// //   }
-
-// //   if (roundWon) {
-// //     return winnerName;
-// //   }
-
-// //   let roundDraw = !board.includes("");
-
-// //   if (roundDraw) {
-// //     return "tie";
-// //   }
-
-// //   return null;
-// // }
-
-// function minimax(
-//   board,
-//   depth,
-//   currentPlayerIndex,
-//   players,
-//   checkWin,
-//   calculateScore
-// ) {
-//   const winner = checkWin(board); // Check if there's a winner or a draw
-//   console.log("winner", winner);
-//   if (winner !== null) {
-//     return calculateScore(winner, depth); // Score based on the winner
-//   }
-
-//   const currentPlayer = players[currentPlayerIndex]; // The player whose turn it is
-//   const isMaximizing = currentPlayerIndex === 0; // First player (index 0) tries to maximize score
-//   let bestEval = isMaximizing ? -Infinity : Infinity;
-
-//   for (let i = 0; i < board.length; i++) {
-//     for (let j = 0; j < board[i].length; j++) {
-//       if (board[i][j] === null) {
-//         // Empty spot
-//         board[i][j] = currentPlayer; // Make move
-//         const nextPlayerIndex = (currentPlayerIndex + 1) % players.length; // Move to the next player
-//         const eval = minimax(
-//           board,
-//           depth + 1,
-//           nextPlayerIndex,
-//           players,
-//           checkWin,
-//           calculateScore
-//         );
-//         board[i][j] = null; // Undo move
-//         bestEval = isMaximizing
-//           ? Math.max(bestEval, eval)
-//           : Math.min(bestEval, eval);
-//       }
-//     }
-//   }
-
-//   return bestEval;
-// }
-
-// function findBestMove(board, currentPlayer, players, checkWin, calculateScore) {
-//   let bestScore = -Infinity;
-//   let bestMove = null;
-
-//   const currentPlayerIndex = players.indexOf(currentPlayer); // Get the index of the current player
-
-//   for (let i = 0; i < board.length; i++) {
-//     for (let j = 0; j < board[i].length; j++) {
-//       if (board[i][j] === null) {
-//         // Empty spot
-//         board[i][j] = currentPlayer; // Make move
-//         const nextPlayerIndex = (currentPlayerIndex + 1) % players.length; // Move to the next player
-//         const moveScore = minimax(
-//           board,
-//           0,
-//           nextPlayerIndex,
-//           players,
-//           checkWin,
-//           calculateScore
-//         );
-//         board[i][j] = null; // Undo move
-//         if (moveScore > bestScore) {
-//           bestScore = moveScore;
-//           bestMove = { row: i, col: j };
-//         }
-//       }
-//     }
-//   }
-
-//   return bestMove;
-// }
-
-// function createBoard() {
-//   const board = [];
-//   for (let r = 0; r < boardStructure.ROWS; r++) {
-//     const singleRow = [];
-//     for (let c = 0; c < boardStructure.COLUMNS; c++) {
-//       singleRow.push(null);
-//     }
-//     board.push(singleRow);
-//   }
-//   return board;
-// }
-
-// const boardSim = createBoard();
-
-// const players = playerData.map((item) => item.name);
-// const testCurrentPlayer = players[0];
-
-// // Example: Find best move for player "X"
-// const bestMove = findBestMove(
-//   boardSim,
-//   testCurrentPlayer,
-//   players,
-//   miniMaxCheckWinnerFunction,
-//   calculateScore
-// );
-// console.log(bestMove);
+gameSettingForm.addEventListener("submit", onSubmitGameSettingsHandler);

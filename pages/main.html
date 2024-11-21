@@ -12,9 +12,18 @@
       rel="stylesheet"
     />
 
-    <link href="../assets/css/index.styling.css" rel="stylesheet" />
+    <link href="../assets/css/main.styling.css" rel="stylesheet" />
   </head>
+
   <body>
+    <button class="audio_btn">
+      <img src="../assets/images/audio.png" alt="audio" />
+    </button>
+    <audio
+      id="bgMusicMain"
+      src="../assets/audio/background_music.mp3"
+      loop
+    ></audio>
     <header>
       <div>
         <h5 class="game_title gradient-text">NoughtsXCrosses</h5>
@@ -94,6 +103,25 @@
       </section>
     </div>
 
-    <script src="../assets/js/index.script.js"></script>
+    <script>
+      /** @type {HTMLButtonElement} */
+      const audioBtnMain = document.querySelector(".audio_btn");
+
+      audioBtnMain.addEventListener("click", (e) => {
+        /** @type {HTMLAudioElement} */
+        const bgMusicMain = document.getElementById("bgMusicMain");
+        /**@type {HTMLImageElement} */
+        const imgNode = audioBtnMain.children[0];
+        bgMusicMain.volume = 0.3;
+        if (bgMusicMain.paused) {
+          bgMusicMain.play();
+          imgNode.setAttribute("src", "../assets/images/mute.png");
+        } else {
+          bgMusicMain.pause();
+          imgNode.setAttribute("src", "../assets/images/audio.png");
+        }
+      });
+    </script>
+    <script src="../assets/js/main.script.js"></script>
   </body>
 </html>
