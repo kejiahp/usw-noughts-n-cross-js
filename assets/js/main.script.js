@@ -387,6 +387,9 @@ function executeAIMoveSet() {
   if (!nextTurnPlayer) {
     return;
   }
+  if (gameActive === false) {
+    return;
+  }
   if (nextTurnPlayer.isAI) {
     AIAction();
   }
