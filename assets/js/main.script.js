@@ -29,8 +29,6 @@ if (!gameSettingsStr) {
 /** @type {{playerCount:Number, playerDetails:PlayerCharacterDetails[], boardSize:String, roundType:"best-of-three" | "best-of-nine" | "free-for-all", turnDuration:Number | null, aiDifficulty: "easy" | "hard" | null}} */
 const gameSettings = JSON.parse(gameSettingsStr);
 
-console.log("gameSettings", gameSettings);
-
 /** @type {PlayerCharacterDetails[]} */
 const playerData = gameSettings.playerDetails.map((item) => {
   return {
@@ -123,7 +121,6 @@ function updateTimer() {
   document.getElementById("timer_countdown").innerText = timeLeft;
   if (timeLeft > 0) {
     timeLeft--;
-    // console.log(timeLeft);
   } else {
     /**Change player turn when players turn is over */
     currentPlayer = getNextPlayer();
@@ -175,7 +172,6 @@ if (roundType !== "free-for-all") {
 
   /** @type {HTMLSpanElement} */
   const countDown = document.getElementById("timer_countdown");
-  console.log("countDown", countDown);
 
   roundInstructionConfirm.addEventListener("click", (e) => {
     e.preventDefault();
@@ -372,38 +368,9 @@ function executeAIMoveSet() {
     return;
   }
   if (nextTurnPlayer.isAI) {
-    console.log("RUN AI FUNCTIONALITY");
     if (aiDifficulty === "easy") {
       easyAIAction();
     }
-
-    // function createBoard() {
-    //   const board = [];
-    //   for (let r = 0; r < boardStructure.ROWS; r++) {
-    //     const singleRow = [];
-    //     for (let c = 0; c < boardStructure.COLUMNS; c++) {
-    //       singleRow.push(null);
-    //     }
-    //     board.push(singleRow);
-    //   }
-    //   return board;
-    // }
-
-    // const boardSim = createBoard();
-
-    // const players = playerData.map((item) => item.name);
-
-    // // Example: Find best move for player "X"
-    // const bestMove = findBestMove(
-    //   boardSim,
-    //   currentPlayer,
-    //   players,
-    //   miniMaxCheckWinnerFunction,
-    //   calculateScore
-    // );
-    // console.log("bestMove", bestMove);
-
-    console.log("AI FUCNTIONALITY RAN");
   }
 }
 
@@ -475,10 +442,6 @@ function cellClicked(clickedCellEvent, cellIndx) {
   updateUI();
   renderPlayerTurnTracker();
 
-  const nextTurnPlayer = playerData.find((item) => item.name === currentPlayer);
-  if (!nextTurnPlayer) {
-    return;
-  }
   executeAIMoveSet();
 }
 
@@ -794,193 +757,3 @@ if (isOnGoingRound()) {
   resetButton.textContent = "Next Game";
   resetButton.addEventListener("click", () => nextGameRound(true), false);
 }
-
-// Utility Function: Calculate Score
-// function calculateScore(winner, depth) {
-//   if (winner === null) return 0; // No winner (draw)
-//   return 100 - depth; // Favor faster wins for the winner
-// }
-
-// function miniMaxCheckWinnerFunction(board) {
-//   const rows = board.length;
-//   const cols = board[0].length;
-
-//   // Helper function to check if all elements in an array are the same and not null
-//   function isUniformLine(line) {
-//     return line.every((cell) => cell !== null && cell === line[0]);
-//   }
-
-//   // Check rows
-//   for (let row = 0; row < rows; row++) {
-//     if (isUniformLine(board[row])) {
-//       return board[row][0]; // Return the winner's key
-//     }
-//   }
-
-//   // Check columns
-//   for (let col = 0; col < cols; col++) {
-//     const column = board.map((row) => row[col]);
-//     if (isUniformLine(column)) {
-//       return column[0]; // Return the winner's key
-//     }
-//   }
-
-//   // Check top-left to bottom-right diagonals
-//   const mainDiagonal = [];
-//   for (let i = 0; i < Math.min(rows, cols); i++) {
-//     mainDiagonal.push(board[i][i]);
-//   }
-//   if (isUniformLine(mainDiagonal)) {
-//     return mainDiagonal[0]; // Return the winner's key
-//   }
-
-//   // Check top-right to bottom-left diagonals
-//   const antiDiagonal = [];
-//   for (let i = 0; i < Math.min(rows, cols); i++) {
-//     antiDiagonal.push(board[i][cols - i - 1]);
-//   }
-//   if (isUniformLine(antiDiagonal)) {
-//     return antiDiagonal[0]; // Return the winner's key
-//   }
-
-//   // Check for a draw (no null values in the board)
-//   const isDraw = board.flat().every((cell) => cell !== null);
-//   if (isDraw) return "draw";
-
-//   return null; // No winner yet
-// }
-
-// // function miniMaxCheckWinnerFunction(board) {
-// //   let roundWon = false;
-// //   /**@type {string} */
-// //   let winnerName = "";
-
-// //   for (let i = 0; i < winConditions.length; i++) {
-// //     const arrToCompare = [];
-// //     const winCombinationCellIndex = [];
-// //     for (let j = 0; j < winConditions[i].length; j++) {
-// //       winCombinationCellIndex.push(winConditions[i][j]);
-// //       arrToCompare.push(board[winConditions[i][j]]);
-// //     }
-// //     const combinationMatch = identical(arrToCompare);
-// //     if (combinationMatch) {
-// //       roundWon = true;
-// //       winnerName = combinationMatch[0];
-// //       break;
-// //     }
-// //   }
-
-// //   if (roundWon) {
-// //     return winnerName;
-// //   }
-
-// //   let roundDraw = !board.includes("");
-
-// //   if (roundDraw) {
-// //     return "tie";
-// //   }
-
-// //   return null;
-// // }
-
-// function minimax(
-//   board,
-//   depth,
-//   currentPlayerIndex,
-//   players,
-//   checkWin,
-//   calculateScore
-// ) {
-//   const winner = checkWin(board); // Check if there's a winner or a draw
-//   console.log("winner", winner);
-//   if (winner !== null) {
-//     return calculateScore(winner, depth); // Score based on the winner
-//   }
-
-//   const currentPlayer = players[currentPlayerIndex]; // The player whose turn it is
-//   const isMaximizing = currentPlayerIndex === 0; // First player (index 0) tries to maximize score
-//   let bestEval = isMaximizing ? -Infinity : Infinity;
-
-//   for (let i = 0; i < board.length; i++) {
-//     for (let j = 0; j < board[i].length; j++) {
-//       if (board[i][j] === null) {
-//         // Empty spot
-//         board[i][j] = currentPlayer; // Make move
-//         const nextPlayerIndex = (currentPlayerIndex + 1) % players.length; // Move to the next player
-//         const eval = minimax(
-//           board,
-//           depth + 1,
-//           nextPlayerIndex,
-//           players,
-//           checkWin,
-//           calculateScore
-//         );
-//         board[i][j] = null; // Undo move
-//         bestEval = isMaximizing
-//           ? Math.max(bestEval, eval)
-//           : Math.min(bestEval, eval);
-//       }
-//     }
-//   }
-
-//   return bestEval;
-// }
-
-// function findBestMove(board, currentPlayer, players, checkWin, calculateScore) {
-//   let bestScore = -Infinity;
-//   let bestMove = null;
-
-//   const currentPlayerIndex = players.indexOf(currentPlayer); // Get the index of the current player
-
-//   for (let i = 0; i < board.length; i++) {
-//     for (let j = 0; j < board[i].length; j++) {
-//       if (board[i][j] === null) {
-//         // Empty spot
-//         board[i][j] = currentPlayer; // Make move
-//         const nextPlayerIndex = (currentPlayerIndex + 1) % players.length; // Move to the next player
-//         const moveScore = minimax(
-//           board,
-//           0,
-//           nextPlayerIndex,
-//           players,
-//           checkWin,
-//           calculateScore
-//         );
-//         board[i][j] = null; // Undo move
-//         if (moveScore > bestScore) {
-//           bestScore = moveScore;
-//           bestMove = { row: i, col: j };
-//         }
-//       }
-//     }
-//   }
-
-//   return bestMove;
-// }
-
-// function createBoard() {
-//   const board = [];
-//   for (let r = 0; r < boardStructure.ROWS; r++) {
-//     const singleRow = [];
-//     for (let c = 0; c < boardStructure.COLUMNS; c++) {
-//       singleRow.push(null);
-//     }
-//     board.push(singleRow);
-//   }
-//   return board;
-// }
-
-// const boardSim = createBoard();
-
-// const players = playerData.map((item) => item.name);
-// const testCurrentPlayer = players[0];
-
-// // Example: Find best move for player "X"
-// const bestMove = findBestMove(
-//   boardSim,
-//   testCurrentPlayer,
-//   players,
-//   miniMaxCheckWinnerFunction,
-//   calculateScore
-// );
-// console.log(bestMove);
