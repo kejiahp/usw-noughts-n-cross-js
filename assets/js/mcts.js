@@ -1,11 +1,3 @@
-// Adjust number of iterations based on board size and player count. Ensuring maximum efficiency.
-
-/*
-
-Both algorithms assume a state object that provides methods like getPossibleMoves(player), applyMove(move, player), isTerminal(), and getWinner().
-
-*/
-
 class Node {
   constructor(state, parent = null, player = null) {
     this.state = state; // The current board state
@@ -47,13 +39,13 @@ class Node {
   }
 
   // Backpropagate results to update the tree
-  backpropagate(result, currentPlayer) {
+  backpropagate(result) {
     this.visits++;
     if (result === this.player) {
       this.wins++;
     }
     if (this.parent) {
-      this.parent.backpropagate(result, currentPlayer);
+      this.parent.backpropagate(result);
     }
   }
 }
@@ -61,8 +53,6 @@ class Node {
 // MCTS Algorithm
 function MCTS(rootState, iterations, currentPlayer) {
   const rootNode = new Node(rootState, null, currentPlayer);
-  let human = 0;
-  let artifical = 0;
 
   for (let i = 0; i < iterations; i++) {
     /**
@@ -86,14 +76,10 @@ function MCTS(rootState, iterations, currentPlayer) {
     // Simulation
     const result = simulateGame(node.state, node.player);
 
-    if (result === "human") human++;
-    if (result === "artifical") artifical++;
-
     // Backpropagation
-    node.backpropagate(result, currentPlayer);
+    node.backpropagate(result);
   }
 
-  console.log("rootNode", rootNode);
   // Choose the most visited child as the best move
   return rootNode.children.reduce((best, child) =>
     child.visits > best.visits ? child : best

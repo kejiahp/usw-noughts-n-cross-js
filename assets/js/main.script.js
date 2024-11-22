@@ -40,9 +40,6 @@ const playerData = gameSettings.playerDetails.map((item) => {
   };
 });
 
-/** AI difficulty level */
-const aiDifficulty = gameSettings.aiDifficulty || undefined;
-
 /** @type {"best-of-three" | "best-of-nine" | "free-for-all"} */
 const roundType = gameSettings?.roundType ?? "best-of-three";
 
@@ -348,19 +345,6 @@ function getRandomInt(min, max) {
   return Math.floor(Math.random() * (maxFloored - minCeiled) + minCeiled);
 }
 
-/** Makes a play on a cell at random, simulating the AI's moveset on easy difficult */
-function easyAIAction() {
-  const emptyCells = [];
-  gameBoardState.forEach((item, index) => {
-    if (item === "") {
-      emptyCells.push(index);
-    }
-  });
-  const rand = getRandomInt(0, emptyCells.length - 1);
-  /* Make a random play  */
-  cellClicked(undefined, emptyCells[rand]);
-}
-
 /** Finds the difference in arrays of the same length
  *
  * @param {Array} arr1
@@ -379,15 +363,13 @@ function findTheDifferenceInSameLenArr(arr1, arr2) {
 }
 
 /** Makes a play on a cell using Montey Carlos Tree Search (MCTS), simulating the AI's moveset on hard difficult */
-function hardAIAction() {
-  console.log("pre-montey-state", gameBoardState);
+function AIAction() {
   const gameStateObj = new GameState(
     gameBoardState,
     winConditions,
     playerData.map((item) => item.name)
   );
   const monteyCarlosTreeSearch = MCTS(gameStateObj, 1000, currentPlayer);
-  console.log("post-montey-state", monteyCarlosTreeSearch.board);
 
   const diff = findTheDifferenceInSameLenArr(
     gameBoardState,
@@ -406,10 +388,7 @@ function executeAIMoveSet() {
     return;
   }
   if (nextTurnPlayer.isAI) {
-    if (aiDifficulty === "easy") {
-      // easyAIAction();
-      hardAIAction();
-    }
+    AIAction();
   }
 }
 
