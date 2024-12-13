@@ -355,7 +355,7 @@ function AIAction() {
   );
   const monteyCarlosTreeSearch = MCTS(
     gameStateObj,
-    5000,
+    1000,
     currentPlayer,
     gameBoardState
   );

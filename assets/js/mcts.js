@@ -128,8 +128,8 @@ function MCTS(rootState, iterations, currentPlayer, initBoard) {
     node.backpropagate(result);
   }
 
-  console.log(winProbability);
-  console.log("heuristicsDetails", heuristicsDetails);
+  // console.log(winProbability);
+  // console.log("heuristicsDetails", heuristicsDetails);
 
   // Choose the most visited child as the best move
   const finalState = rootNode.children.reduce((best, child) =>
@@ -331,7 +331,7 @@ function checkForWinningPlay(board, allPlayers, winConditions, currentPly) {
   }
   allPlayers.unshift(currentPly);
   for (let currPly = 0; currPly < allPlayers.length; currPly++) {
-    console.log("currPly", currPly);
+    // console.log("currPly", currPly);
     for (let i = 0; i < newBoard.length; i++) {
       if (newBoard[i] === "") {
         newBoard[i] = allPlayers[currPly];
