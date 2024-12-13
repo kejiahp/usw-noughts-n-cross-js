@@ -1,3 +1,27 @@
+const heuristicsDetails = {
+  center: 0,
+  corner: 0,
+  random: 0,
+  winningPlay: 0,
+};
+
+/** Finds the difference in arrays of the same length
+ *
+ * @param {Array} arr1
+ * @param {Array} arr2
+ *
+ */
+function findTheDifferenceInSameLenArr(arr1, arr2) {
+  if (arr1.length !== arr2.length) {
+    throw new Error("Arrays must be of the same length");
+  }
+  for (let i = 0; i < arr1.length; i++) {
+    if (arr1[i] !== arr2[i]) {
+      return { index: i, arr1: arr1[i], arr2: arr2[i] };
+    }
+  }
+}
+
 class Node {
   constructor(state, parent = null, player = null) {
     this.state = state; // The current board state
@@ -51,8 +75,30 @@ class Node {
 }
 
 // MCTS Algorithm
-function MCTS(rootState, iterations, currentPlayer) {
+function MCTS(rootState, iterations, currentPlayer, initBoard) {
   const rootNode = new Node(rootState, null, currentPlayer);
+
+  // REMOVE
+  const winProbability = {};
+  rootState.listOfPlayers.forEach((item) => {
+    winProbability[item] = 0;
+  });
+
+  const isWinningMove = checkForWinningPlay(
+    initBoard,
+    rootState.listOfPlayers,
+    rootState.winConditions,
+    currentPlayer
+  );
+  const cornerPlay = verifyCornerPlay(rootState.getPossibleMoves());
+  const centerPlay = verifyCentralPlay(rootState.getPossibleMoves());
+  if (isWinningMove) {
+    return { index: isWinningMove.position };
+  } else if (centerPlay) {
+    return { index: centerPlay };
+  } else if (cornerPlay) {
+    return { index: cornerPlay };
+  }
 
   for (let i = 0; i < iterations; i++) {
     /**
@@ -76,24 +122,61 @@ function MCTS(rootState, iterations, currentPlayer) {
     // Simulation
     const result = simulateGame(node.state, node.player);
 
+    if (result) winProbability[result] = winProbability[result] + 1;
+
     // Backpropagation
     node.backpropagate(result);
   }
 
+  console.log(winProbability);
+  console.log("heuristicsDetails", heuristicsDetails);
+
   // Choose the most visited child as the best move
-  return rootNode.children.reduce((best, child) =>
+  const finalState = rootNode.children.reduce((best, child) =>
     child.visits > best.visits ? child : best
   ).state;
+
+  const diff = findTheDifferenceInSameLenArr(initBoard, finalState.board);
+
+  return diff;
 }
 
 // Helper: Simulate a random game
+// function simulateGame(state, player) {
+//   let currentState = state;
+//   let currentPlayer = player;
+//   while (!currentState.isTerminal()) {
+//     const moves = currentState.getPossibleMoves();
+//     const randomMove = moves[Math.floor(Math.random() * moves.length)];
+//     currentState = currentState.applyMove(randomMove, currentPlayer);
+
+//     const playerIndex = currentState.getPlayersIndexNo(currentPlayer);
+//     const nextPlayer = currentState.getPlayerByIndex(
+//       (playerIndex + 1) % currentState.playerCount
+//     );
+//     currentPlayer = nextPlayer;
+//   }
+//   return currentState.getWinner(); // Returns the winner
+// }
+
+// Helper: Simulate a random game
 function simulateGame(state, player) {
+  // TODO: Remove
+
   let currentState = state;
   let currentPlayer = player;
   while (!currentState.isTerminal()) {
     const moves = currentState.getPossibleMoves();
-    const randomMove = moves[Math.floor(Math.random() * moves.length)];
-    currentState = currentState.applyMove(randomMove, currentPlayer);
+    const playPosition = heuristicMoveSelection(
+      moves,
+      currentPlayer,
+      currentState.board,
+      currentState.winConditions,
+      currentState.listOfPlayers,
+      heuristicsDetails
+    );
+
+    currentState = currentState.applyMove(playPosition, currentPlayer);
 
     const playerIndex = currentState.getPlayersIndexNo(currentPlayer);
     const nextPlayer = currentState.getPlayerByIndex(
@@ -102,6 +185,165 @@ function simulateGame(state, player) {
     currentPlayer = nextPlayer;
   }
   return currentState.getWinner(); // Returns the winner
+}
+
+/**
+ *
+ * @param {number[]} possibleMove
+ * @param {string} currentPlayer
+ */
+function heuristicMoveSelection(
+  possibleMove,
+  currentPlayer,
+  board = null,
+  winConditions = null,
+  listOfPlayers = null,
+  heuristicsDetails = null
+) {
+  const centerPlay = verifyCentralPlay(possibleMove);
+  const isWinningMove = checkForWinningPlay(
+    board,
+    listOfPlayers,
+    winConditions,
+    currentPlayer
+  );
+  const cornerPlay = verifyCornerPlay(possibleMove);
+
+  if (isWinningMove) {
+    heuristicsDetails["winningPlay"] = heuristicsDetails["winningPlay"] + 1;
+    return isWinningMove.position;
+  } else if (centerPlay) {
+    heuristicsDetails["center"] = heuristicsDetails["center"] + 1;
+    return centerPlay;
+  } else if (cornerPlay) {
+    heuristicsDetails["corner"] = heuristicsDetails["corner"] + 1;
+    return cornerPlay;
+  } else {
+    heuristicsDetails["random"] = heuristicsDetails["random"] + 1;
+    const randomMove =
+      possibleMove[Math.floor(Math.random() * possibleMove.length)];
+    return randomMove;
+  }
+}
+
+/**
+ * If the board allows diagonal wins, detect the center and make a play there
+ *
+ * @param {number[]} playableMoves
+ *  */
+function verifyCentralPlay(playableMoves) {
+  const rows = Number(boardStructure["ROWS"]);
+  const cols = Number(boardStructure["COLUMNS"]);
+  const isSame = rows === cols;
+  if (!isSame) {
+    return null;
+  }
+  if (rows % 2 === 0 || cols % 2 === 0) {
+    return null;
+  }
+  const center = Math.floor((rows * cols) / 2);
+  if (!playableMoves.includes(center)) {
+    return null;
+  }
+  return center;
+}
+
+function verifyCornerPlay(playableMoves) {
+  const rows = Number(boardStructure["ROWS"]);
+  const cols = Number(boardStructure["COLUMNS"]);
+  const isSame = rows === cols;
+  if (!isSame) {
+    return null;
+  }
+  if (rows % 2 === 0 || cols % 2 === 0) {
+    return null;
+  }
+  // get all the corners of the board
+  const vv = [];
+  for (let colWin = 0; colWin < cols; colWin++) {
+    const combination = [];
+    for (let rowWin = 0; rowWin < rows; rowWin++) {
+      combination.push(rowWin * cols + colWin);
+    }
+    vv.push(combination);
+  }
+  const corners = [];
+  corners.push(vv[0][0], vv[0][cols - 1]);
+  corners.push(vv[vv.length - 1][0], vv[vv.length - 1][cols - 1]);
+  for (let corner of corners) {
+    if (playableMoves.includes(corner)) {
+      return corner;
+    }
+  }
+  return null;
+}
+
+function pureIsIdentical(array) {
+  for (let i = 0; i < array.length - 1; i++) {
+    // prevent the function from running on empty strings
+    if (array[i] === "") {
+      return false;
+    }
+    if (array[i] !== array[i + 1]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ *
+ * @param {number[][]} winConditions
+ * @param {string[]} board
+ * @returns {string | null}
+ */
+function pureWinChecker(winConditions, board) {
+  for (let i = 0; i < winConditions.length; i++) {
+    const arrToCompare = [];
+    for (let j = 0; j < winConditions[i].length; j++) {
+      arrToCompare.push(board[winConditions[i][j]]);
+    }
+    const combinationMatch = pureIsIdentical(arrToCompare);
+    if (combinationMatch) {
+      return arrToCompare[0];
+    }
+  }
+  return null;
+}
+
+/**
+ * Check for the winning play on the game board
+ *
+ * If a player is set to win the game in the next move the AI attempts to block the play.
+ *
+ * If the AI is set to win in the next play, the AI attempts to make the play.
+ * @param {string[]} board
+ * @param {string[]} allPlayers
+ * @param {number[][]} winConditions
+ * @param {string} currentPly
+ * */
+function checkForWinningPlay(board, allPlayers, winConditions, currentPly) {
+  const newBoard = [...board];
+  // ensure the checks happen for the current player first to prioritize winning plays over blocking plays
+  const indexOfCurrPly = allPlayers.indexOf(currentPly);
+  if (indexOfCurrPly !== -1) {
+    allPlayers.splice(indexOfCurrPly, 1);
+  }
+  allPlayers.unshift(currentPly);
+  for (let currPly = 0; currPly < allPlayers.length; currPly++) {
+    console.log("currPly", currPly);
+    for (let i = 0; i < newBoard.length; i++) {
+      if (newBoard[i] === "") {
+        newBoard[i] = allPlayers[currPly];
+        const winningPlayer = pureWinChecker(winConditions, newBoard);
+        if (winningPlayer) {
+          newBoard[i] = "";
+          return { winningPlayer, position: i };
+        }
+        newBoard[i] = "";
+      }
+    }
+  }
 }
 
 /** This Class represents the state of the game */
@@ -134,7 +376,10 @@ class GameState {
 
   applyMove(moveIndex, currentPlayer) {
     if (this.board[moveIndex] !== "") {
-      throw new Error("Invalid move: Cell is already occupied.");
+      // TODO: Remove
+      throw new Error(
+        `Invalid move: Cell (${moveIndex}) is already occupied| current player: ${currentPlayer} | board: ${this.board}`
+      );
     }
     const newBoardState = [...this.board];
     newBoardState[moveIndex] = currentPlayer;

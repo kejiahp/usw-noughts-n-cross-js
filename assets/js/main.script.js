@@ -345,39 +345,24 @@ function getRandomInt(min, max) {
   return Math.floor(Math.random() * (maxFloored - minCeiled) + minCeiled);
 }
 
-/** Finds the difference in arrays of the same length
- *
- * @param {Array} arr1
- * @param {Array} arr2
- *
- */
-function findTheDifferenceInSameLenArr(arr1, arr2) {
-  if (arr1.length !== arr2.length) {
-    throw new Error("Arrays must be of the same length");
-  }
-  for (let i = 0; i < arr1.length; i++) {
-    if (arr1[i] !== arr2[i]) {
-      return { index: i, arr1: arr1[i], arr2: arr2[i] };
-    }
-  }
-}
-
-/** Makes a play on a cell using Montey Carlos Tree Search (MCTS), simulating the AI's moveset on hard difficult */
+/** Makes a play on a cell using Montey Carlos Tree Search (MCTS), simulating the AI's moveset */
 function AIAction() {
+  // console.log("gameBoardState", gameBoardState);
   const gameStateObj = new GameState(
     gameBoardState,
     winConditions,
     playerData.map((item) => item.name)
   );
-  const monteyCarlosTreeSearch = MCTS(gameStateObj, 1000, currentPlayer);
-
-  const diff = findTheDifferenceInSameLenArr(
-    gameBoardState,
-    monteyCarlosTreeSearch.board
+  const monteyCarlosTreeSearch = MCTS(
+    gameStateObj,
+    5000,
+    currentPlayer,
+    gameBoardState
   );
-  if (diff) {
+
+  if (monteyCarlosTreeSearch) {
     /* Make play according to U  */
-    cellClicked(undefined, diff.index);
+    cellClicked(undefined, monteyCarlosTreeSearch.index);
   }
 }
 
